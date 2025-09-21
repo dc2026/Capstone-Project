@@ -25,28 +25,28 @@ sp_oauth = SpotifyOAuth(
 
 sp_client = Spotify(auth_manager=sp_oauth)
 
-@dataclass
-class Song():
-    title: str
-    album: str
-    artist: str
-    spotify_id: str
+# @dataclass
+# class Song():
+#     title: str
+#     album: str
+#     artist: str
+#     spotify_id: str
 
 
-def search(query):
-    results = sp_client.search(query, limit=15)
+# def search(query):
+#     results = sp_client.search(query, limit=15)
 
-    songs = []
-    for track in results["tracks"]["items"]: # type: ignore
-        song = Song(
-            title=track.get('name', 'NULL'),
-            album=track.get('album', 'NULL album').get('name'),
-            artist=track.get('artists', 'NULL')[0].get('name', 'NULL'),
-            spotify_id=track.get('id', '')
-        )
+#     songs = []
+#     for track in results["tracks"]["items"]: # type: ignore
+#         song = Song(
+#             title=track.get('name', 'NULL'),
+#             album=track.get('album', 'NULL album').get('name'),
+#             artist=track.get('artists', 'NULL')[0].get('name', 'NULL'),
+#             spotify_id=track.get('id', '')
+#         )
 
-    songs.append(song) # type: ignore
+#     songs.append(song) # type: ignore
 
-    return songs
+#     return songs
 
 

@@ -40,13 +40,12 @@ def get_playlists():
     playlists_info = [(pl['name'], pl['external_urls']['spotify']) for pl in playlists['items']] 
 
     playlists_dict = {'track_info': {}}
+    track_info_list = []
 
     for name, url in playlists_info: 
         playlist_id = url.split('/', 4)[4]
         info = sp_client.playlist_items(playlist_id, fields='items(track(id,name,artists(name)))')
         items = info.get('items', []) # type: ignore
-
-        track_info_obj = []
 
         for item in items:
             track = item.get('track', {})
@@ -56,26 +55,20 @@ def get_playlists():
             song_title = track.get('name', '')
             song_artist_name = track.get('artists', [{}])[0].get('name', '')
 
-            track_info_obj.append({
+            track_info_list.append({
                 'id': song_id,
                 'title': song_title,
                 'artist': song_artist_name
             })
 
-        playlists_dict['track_info'][playlist_id] = track_info_obj
-
-
+        playlists_dict['track_info'][playlist_id] = track_info_list
     
-
-    """   
-
-
     with open('user_info.csv', 'w', newline='') as csvfile:
-        fieldnames = ['id', 'track_info']
+        fieldnames = ['artist', 'id', 'title']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(playlists_dict['id']) 
-        writer.writerows(playlists_dict['track_info'])  """
+        for row in track_info_list: # type: ignore
+            writer.writerow(row) 
 
     return playlists_dict 
     
