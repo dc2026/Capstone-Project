@@ -1,4 +1,6 @@
--- only run once to create the database
+-- if using workbench: use create new schema to create the database
+
+-- only run once to create the database if using MySQL Shell
 -- CREATE DATABASE menu_recommender
 
 -- run to start programming in the database if using MySQL shell
@@ -18,6 +20,7 @@ INTO TABLE recipes
 FIELDS TERMINATED BY ','
 LINES TERMINATED BY '\r\n'
 IGNORE 1 ROWS;
+
 
 
 
