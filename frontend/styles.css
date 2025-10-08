@@ -1,0 +1,27 @@
+
+
+.photo {
+    padding-bottom: 15px;
+    display: block;
+    margin: 0 auto;
+    width: 60% !important; 
+    height: auto !important;
+}
+
+.heading {
+    padding-top: 12px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    font-size:xx-large;
+}
+
+.secondHeader {
+     padding-top: 5px;
+     display: flex;
+     justify-content: center;
+}
+
+.input {
+    padding-bottom: 5px;
+}
