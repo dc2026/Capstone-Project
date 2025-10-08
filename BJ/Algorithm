@@ -11,10 +11,12 @@ connection = mysql.connector.connect(
 cursor = connection.cursor()
 
 def CollectUserData():
-    while true:
-        item = input("Please input ingredients you would like to use: ")
+    while True:
+        item = input("Please input the ingredient you would like to use: ")
+        amount = int(input("How many do you have? "))
         if item.lower() == "exit":
             break
+
 
 
 
