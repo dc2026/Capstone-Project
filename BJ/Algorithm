@@ -1,3 +1,6 @@
+import pip
+import mysql-connector-python
+
 --this is the Algorithm File--
 pip install mysql-connector-python
 
@@ -12,7 +15,7 @@ cursor = connection.cursor()
 
 def CollectUserData():
     while True:
-        item = input("Please input the ingredient you would like to use: ")
+        item = input("Please input the ingredient you would like to use(type exit to quit): ")
         amount = int(input("How many do you have? "))
         if item.lower() == "exit":
             break
