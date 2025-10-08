@@ -1,1 +1,22 @@
 --this is the Algorithm File--
+pip install mysql-connector-python
+
+# connects user to MySQL database
+connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    database="menu_recommender"
+)
+# Create a cursor object (can run SQL commands)
+cursor = connection.cursor()
+
+def CollectUserData():
+    while true:
+        item = input("Please input ingredients you would like to use: ")
+        if item.lower() == "exit":
+            break
+
+
+
+cursor.close()
+connection.close()
