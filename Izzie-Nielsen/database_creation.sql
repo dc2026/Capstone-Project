@@ -13,6 +13,15 @@ CREATE TABLE recipes(
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY
 );
 
+-- creates table for users
+CREATE TABLE users(
+	EMAIL_ADDRESS VARCHAR(124),
+    USER_NAME VARCHAR(50),
+    USER_PASSWORD VARCHAR(50),
+    INGREDIENTS VARCHAR(2024),
+    USER_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY
+);
+
 -- change file path to match your path
 -- loads data from csv into the recipes table
 LOAD DATA INFILE '/Users/izzienielsen/Documents/CSC Capstone/github downloads/recipe_info.csv'
