@@ -1,102 +1,60 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from rapidfuzz import fuzz
+import numpy as np
+import os
 
+class RecipeFinder:
+    def __init__(self, csv_path):
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV file not found: {csv_path}")
+        self.df = pd.read_csv(csv_path)
+        self.df.columns = self.df.columns.str.strip()  # Remove leading/trailing spaces
+        self.vectorizer = TfidfVectorizer(stop_words='english', lowercase=True)
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.df['ingredients'])
+    
+    def find_recipes(self, user_ingredients, top_n=5):
+        # Transform user ingredients using the same vectorizer
+        user_vector = self.vectorizer.transform([user_ingredients])
+        
+        # Calculate cosine similarity
+        similarities = cosine_similarity(user_vector, self.tfidf_matrix).flatten()
+        
+        # Get top N most similar recipes
+        top_indices = similarities.argsort()[-top_n:][::-1]
+        
+        results = []
+        for idx in top_indices:
+            if similarities[idx] > 0:  # Only include recipes with some similarity
+                results.append({
+                    'recipe': self.df.iloc[idx]['recipe'],
+                    'ingredients': self.df.iloc[idx]['ingredients'],
+                    'similarity': similarities[idx]
+                })
+        
+        return results
 
-# Read CSV and preprocess
-
-df = pd.read_csv("/Users/daniellecarrol/Downloads/recipe_info.csv", sep=None, engine='python')
-df.columns = df.columns.str.strip()
-df['ingredients'] = df['ingredients'].str.lower()
-df['ingredient_list'] = df['ingredients'].apply(lambda x: [i.strip() for i in x.split(",")])
-
-
-# Helper functions
-def diet_filter(ings, diet):
-    if diet == 'vegan':
-        forbidden = ['chicken','beef','shrimp','turkey','pork','fish',
-                     'egg','cheese','yogurt','butter','parmesan',
-                     'mozzarella','sour cream','cream','milk']  # note: milk here will still catch plain milk
-        allowed_exceptions = ['coconut milk', 'almond milk', 'soy milk']  # keep plant-based milks
-    elif diet == 'vegetarian':
-        forbidden = ['chicken','beef','shrimp','turkey','pork','fish']
-        allowed_exceptions = []
-    else:
-        return True
-
-    for ing in ings:
-        ing_clean = ing.lower()
-        for f in forbidden:
-            if f in ing_clean and ing_clean not in allowed_exceptions:
-                return False
-    return True
-
-
-def ingredient_overlap_fuzzy(recipe_ings, user_ingredients, threshold=80):
-    matches = 0
-    for r_ing in recipe_ings:
-        for u_ing in user_ingredients:
-            if fuzz.partial_ratio(r_ing, u_ing) >= threshold:
-                matches += 1
-                break
-    return matches * 0.1
-
-def protein_boost(recipe_ings, user_ingredients, diet):
-    if diet == 'omnivore':
-        proteins = ['chicken','beef','shrimp','turkey','pork','fish']
-    elif diet == 'vegetarian':
-        proteins = ['cheese','eggs','yogurt','milk','butter']
-    else:
-        proteins = []
-    boost = 0
-    for r_ing in recipe_ings:
-        for p in proteins:
-            if p in r_ing and any(fuzz.partial_ratio(r_ing, u) >= 80 for u in user_ingredients):
-                boost += 0.3
-                break
-    return boost
-
-
-# Main interactive loop
-while True:
-    # User input
-    diet = input("Are you omnivore, vegetarian, or vegan? ").strip().lower()
-    user_input = input("What ingredients do you have? (separate with commas): ")
-    user_ingredients = list(set([i.lower().strip() for i in user_input.split(",")]))
-
-    # Filter recipes by diet
-    filtered_df = df[df['ingredient_list'].apply(lambda x: diet_filter(x, diet))].copy()
-
-
-    # TF-IDF similarity
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform(filtered_df['ingredients'])
-    user_vector = vectorizer.transform([' '.join(user_ingredients)])
-    filtered_df['similarity'] = cosine_similarity(user_vector, tfidf_matrix).flatten()
-
-    # Adjusted score
-    filtered_df['adjusted_score'] = filtered_df.apply(
-        lambda row: row['similarity'] + ingredient_overlap_fuzzy(row['ingredient_list'], user_ingredients),
-        axis=1
-    )
-    filtered_df['adjusted_score'] += filtered_df['ingredient_list'].apply(
-        lambda x: protein_boost(x, user_ingredients, diet)
-    )
-
-    # Top matches
-    best_matches = filtered_df[filtered_df['adjusted_score'] > 0].sort_values('adjusted_score', ascending=False).head(5)
-
-    # Display results
-    if best_matches.empty:
-        print("\nNo recipes found for your diet with enough matching ingredients.\n")
-    else:
-        print("\nHere are the best recipe matches based on your ingredients and diet:\n")
-        for _, row in best_matches.iterrows():
-            print(f"{row['recipe']}")
-            print(f"Ingredients: {row['ingredients']}\n")
-
-    # Ask if user wants to try again
-    again = input("Do you want to try a different diet or update ingredients? (yes/no): ").strip().lower()
-    if again != 'yes':
-        break
+# Example usage
+if __name__ == "__main__":
+    # Initialize the recipe finder
+    csv_path = os.path.join(os.path.dirname(__file__), 'recipe_info.csv')
+    
+    # Check if file exists, if not create a sample
+    if not os.path.exists(csv_path):
+        print(f"CSV file not found at {csv_path}")
+        print("Please ensure the file exists or update the path.")
+        exit(1)
+    
+    finder = RecipeFinder(csv_path)
+    
+    # Example: User has these ingredients
+    user_ingredients = "chicken, garlic, onion, tomato"
+    
+    # Find matching recipes
+    matches = finder.find_recipes(user_ingredients, top_n=3)
+    
+    print(f"Based on your ingredients: {user_ingredients}")
+    print("\nTop matching recipes:")
+    for i, match in enumerate(matches, 1):
+        print(f"{i}. {match['recipe']} (similarity: {match['similarity']:.3f})")
+        print(f"   Ingredients: {match['ingredients']}\n")
