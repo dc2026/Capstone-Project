@@ -1,0 +1,16 @@
+-- SQLite compatible schema
+
+-- creates the table for recipes 
+CREATE TABLE IF NOT EXISTS recipes (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    RECIPE_NAME TEXT,
+    INGREDIENTS TEXT
+);
+
+-- creates table for users
+CREATE TABLE IF NOT EXISTS users (
+    USER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    EMAIL TEXT,
+    USER_NAME TEXT,
+    INGREDIENTS TEXT
+);
