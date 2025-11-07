@@ -1,0 +1,31 @@
+# code to run in terminal for database creation
+
+# switch to db if exists or create db
+sqlite forkcast.db
+
+# create recipe table
+
+CREATE TABLE IF NOT EXISTS recipes (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    RECIPE_NAME TEXT NOT NULL,
+    INGREDIENTS TEXT NOT NULL,
+    TIME INT,
+    INSTRUCTIONS TEXT,
+    CUSINE_TYPE TEXT
+);
+
+# create users table
+
+CREATE TABLE IF NOT EXISTS users (
+    USER_NAME INTEGER PRIMARY KEY,
+    PASSWORD TEXT,
+    USER TEXT
+);
+
+# create ingredients table for users
+  # seperate table is better/recommended structure choice
+
+CREATE TABLE IF NOT EXISTS ingredients (
+  USER_NAME INTEGER FOREIGN KEY NOT NULL,
+  INGREDIENT TEXT NOT NULL
+)
