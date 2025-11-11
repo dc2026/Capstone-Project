@@ -95,7 +95,6 @@ def get_recipes():
 
 # Run the Flask development server when script is executed directly
 if __name__ == '__main__': 
-    app.run(debug=True, port=5005) 
   port = 5005
     
     # Automatically open browser after server starts
