@@ -1,57 +1,96 @@
+# Flask web application that connects frontend, backend algorithm, and database
+# This serves as the main backend server for the recipe recommendation system
 
 import os
-from flask import Flask
-import csv
+import sys
+from flask import Flask, request, jsonify
+import sqlite3
 
+# Get the absolute path to the project root directory
+# This ensures imports work regardless of where the script is run from
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'Danielle-Carrol'))
 
+# Import the recipe matching algorithm from Danielle's folder
+from recipealgorithm import RecipeFinder
+
+# Initialize Flask web application
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(64)
+app.config['SECRET_KEY'] = os.urandom(64)  # Random secret key for session security
 
-
+# Initialize the recipe recommendation algorithm with the CSV data
+# This loads all recipes and prepares the machine learning model
+finder = RecipeFinder(os.path.join(project_root, 'Izzie-Nielsen', 'recipe.csv'))
 
 @app.route('/')
 def home():
+    """Serve the main frontend HTML page when user visits the root URL"""
+    # Read and return the HTML file from the frontend folder
+    frontend_path = os.path.join(project_root, 'frontend', 'index.html')
+    with open(frontend_path, 'r') as f:
+        return f.read()
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    """Handle form submission: save user data and return recipe recommendations"""
+    # Get JSON data sent from the frontend form
+    data = request.get_json()
     
-
-    return print('home')
-
-
+    # Connect to SQLite database and save user information
+    # USER_NAME is auto-increment INTEGER, PASSWORD stores email, USER stores ingredients
+    db_path = os.path.join(project_root, 'Izzie-Nielsen', 'forkcast.db')
+    try:
+        conn = sqlite3.connect(db_path, timeout=10)
+        cursor = conn.cursor()
+        cursor.execute('''INSERT INTO users (PASSWORD, USER) 
+                         VALUES (?, ?)''', 
+                      (data['email'], data['ingredients']))
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        pass
     
+    # Use the recipe algorithm to find matching recipes based on user's ingredients
+    # Algorithm uses TF-IDF vectorization and cosine similarity for matching
+    matches = finder.find_recipes(data['ingredients'], top_n=5)
+    
+    # Convert numpy data types to Python native types for JSON serialization
+    for match in matches:
+        match['cook_time'] = int(match['cook_time'])  # Convert numpy int64 to Python int
+        match['similarity'] = float(match['similarity'])  # Convert numpy float to Python float
+    
+    # Return the results as JSON for the frontend to display
+    return jsonify({
+        'status': 'success',
+        'recipes': matches
+    })
 
 @app.route('/get_recipes')
 def get_recipes():
-#    token = cache_handler.get_cached_token()
-
+    """API endpoint to retrieve all recipes from the database"""
+    # Connect to database and fetch all recipe records
+    db_path = os.path.join(project_root, 'Izzie-Nielsen', 'forkcast.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM recipes')
+    recipes = cursor.fetchall()
+    conn.close()
+    
+    # Convert database rows to JSON format for API response
     recipe_list = []
-
-    with open('recipe_info.csv', mode='r', newline='') as file:
-        rows = csv.DictReader(file)
-        for row in rows:
-            recipe_list.append(row)
-  
-        
+    for recipe in recipes:
+        recipe_list.append({
+            'id': recipe[0],           # Recipe ID
+            'name': recipe[1],         # Recipe name
+            'ingredients': recipe[2],  # Ingredients list
+            'time': recipe[3],         # Cooking time
+            'instructions': recipe[4], # Cooking instructions
+            'cuisine': recipe[5]       # Cuisine type
+        })
     
+    return jsonify(recipe_list)
 
-    
-
-    
-    # with open('user_info.csv', 'w', newline='') as csvfile:
-    #     fieldnames = ['artist', 'id', 'title']
-    #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    #     writer.writeheader()
-    #     for row in track_info_list: # type: ignore
-    #         writer.writerow(row) 
-
-
-    return recipe_list
-    
-
-
-# @app.route('/logout')
-# def logout(): 
-#     session.clear()
-#     return redirect(url_for('home')) 
-
-
+# Run the Flask development server when script is executed directly
 if __name__ == '__main__': 
-    app.run(debug=True)
+    app.run(debug=True, port=5005)  # Debug mode for development (shows errors and auto-reloads)

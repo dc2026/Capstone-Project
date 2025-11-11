@@ -92,9 +92,8 @@
     </div>
     <hr>
 
-    <div>
-
-
+    <div id="results" class="container mt-4">
+      <!-- Recipe results will appear here -->
     </div>
 
 
@@ -112,21 +111,62 @@
     </script>
 
     <script>
+      // Frontend JavaScript that handles form submission and displays recipe results
+      // This connects the user interface to the backend API
+      
+      // Add event listener to the form to handle submission
       document.getElementById("userForm").addEventListener("submit", async (e) => {
+        // Prevent the default form submission behavior (page reload)
         e.preventDefault();
+        
+        // Get reference to the form element
         const form = e.target;
+        
+        // Extract form data into a JavaScript object
         const data = {
-          name: form.name.value,
-          email: form.email.value,
-          ingredients: form.ingredients.value
+          name: form.name.value,           // User's name from the name input field
+          email: form.email.value,         // User's email from the email input field
+          ingredients: form.ingredients.value // User's ingredients from the textarea
         };
+        
+        // Send POST request to the backend /submit endpoint
         const res = await fetch("/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
+          method: "POST",                                    // HTTP POST method
+          headers: { "Content-Type": "application/json" },  // Tell server we're sending JSON
+          body: JSON.stringify(data)                         // Convert JavaScript object to JSON string
         });
+        
+        // Parse the JSON response from the server
         const result = await res.json();
-        console.log(result);
+        
+        // Get the div element where we'll display the recipe results
+        const resultsDiv = document.getElementById("results");
+        
+        // Check if the server returned any recipe recommendations
+        if (result.recipes && result.recipes.length > 0) {
+          // Build HTML string to display the recommended recipes
+          let html = "<h3>Recommended Recipes:</h3>";
+          
+          // Loop through each recommended recipe and create a Bootstrap card
+          result.recipes.forEach(recipe => {
+            html += `
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">${recipe.recipe}</h5>
+                  <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
+                  <p class="card-text"><strong>Instructions:</strong> ${recipe.instructions}</p>
+                  <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
+                </div>
+              </div>
+            `;
+          });
+          
+          // Insert the generated HTML into the results div
+          resultsDiv.innerHTML = html;
+        } else {
+          // Display message if no matching recipes were found
+          resultsDiv.innerHTML = "<p>No matching recipes found.</p>";
+        }
       });
     </script>
 
