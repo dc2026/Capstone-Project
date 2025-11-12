@@ -32,9 +32,16 @@ A web application that recommends recipes based on available ingredients using m
    - Get personalized recipe recommendations!
 
 ## Project Structure
-- `frontend/` - Flask backend server, HTML/CSS/JavaScript user interface, and ML algorithm
-- `backend/` - Database files, schema, and recipe data
-- `requirements.txt` - Python dependencies
+- `frontend/` - Contains the main application components:
+  - `main.py` - Flask web server that handles HTTP requests and serves the web interface
+  - `recipealgorithm.py` - Machine learning algorithm using TF-IDF and cosine similarity for recipe matching
+  - `index.html` - User interface with form for ingredient input and recipe display
+  - `recipe.csv` - Recipe dataset used by the ML algorithm
+- `backend/` - Database and data management:
+  - `forkcast.db` - SQLite database storing user submissions and recipe data
+  - `database_creation.sql` - SQL scripts for creating database tables
+  - `recipe.csv` - Master recipe dataset with ingredients, instructions, and metadata
+- `requirements.txt` - Python package dependencies (Flask, pandas, scikit-learn, numpy)
 
 ## How It Works
 1. User submits ingredients through web form
