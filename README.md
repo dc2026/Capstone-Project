@@ -13,7 +13,7 @@ A web application that recommends recipes based on available ingredients using m
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd Capstone-Project-2
+   cd Capstone-Project-3
    ```
 
 2. **Install dependencies**
@@ -23,20 +23,17 @@ A web application that recommends recipes based on available ingredients using m
 
 3. **Run the application**
    ```bash
-   cd "Samantha Phillips"
-   python main.py
+   python frontend/main.py
    ```
 
 4. **Access the application**
-   - Open browser to `http://localhost:5004`
+   - Open browser to `http://localhost:5005`
    - Enter your name, email, and available ingredients
    - Get personalized recipe recommendations!
 
 ## Project Structure
-- `frontend/` - HTML/CSS/JavaScript user interface
-- `Samantha Phillips/main.py` - Flask backend server
-- `Danielle-Carrol/recipealgorithm.py` - ML recipe matching algorithm
-- `Izzie-Nielsen/` - Database files and schema
+- `frontend/` - Flask backend server, HTML/CSS/JavaScript user interface, and ML algorithm
+- `backend/` - Database files, schema, and recipe data
 - `requirements.txt` - Python dependencies
 
 ## How It Works
