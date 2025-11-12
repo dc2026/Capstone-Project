@@ -22,7 +22,7 @@ app.config['SECRET_KEY'] = os.urandom(64)  # Random secret key for session secur
 
 # Initialize the recipe recommendation algorithm with the CSV data
 # This loads all recipes and prepares the machine learning model
-finder = RecipeFinder(os.path.join(project_root, 'Izzie-Nielsen', 'recipe.csv'))
+finder = RecipeFinder('frontend/recipe.csv')
 
 @app.route('/')
 def home():
@@ -72,7 +72,7 @@ def submit():
 def get_recipes():
     """API endpoint to retrieve all recipes from the database"""
     # Connect to database and fetch all recipe records
-    db_path = os.path.join(project_root, 'Izzie-Nielsen', 'forkcast.db')
+    db_path = os.path.join(project_root, 'frontend', 'forkcast.db')
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM recipes')
@@ -93,19 +93,21 @@ def get_recipes():
     
     return jsonify(recipe_list)
 
+
 # Run the Flask development server when script is executed directly
-if __name__ == '__main__': 
-  port = 5005
-    
+if __name__ == '__main__':
+    port = 5005
+
     # Automatically open browser after server starts
     def open_browser():
         webbrowser.open(f'http://localhost:{port}')
-    
+
     # Start browser opening in a separate thread after 1 second delay
     threading.Timer(1, open_browser).start()
-    
+
     print(f"\n Starting Forkcast Recipe Recommendation System...")
     print(f" Browser will open automatically at http://localhost:{port}")
     print(f" Enter your ingredients to get personalized recipe recommendations!\n")
-    
-    app.run(debug=True, port=port)# Debug mode for development (shows errors and auto-reloads)
+
+    app.run(debug=True, port=port)  # Debug mode for development (shows errors and auto-reloads)
+
