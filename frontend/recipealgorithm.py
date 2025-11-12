@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # Test with sample ingredients that a user might have
     user_ingredients = "chicken, garlic, onion, tomato"
     
-    # Find the top 3 most similar recipes
+    # Find the top 5 most similar recipes
     matches = finder.find_recipes(user_ingredients, top_n=3)
     
     # Display the results in a user-friendly format
