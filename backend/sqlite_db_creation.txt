@@ -1,7 +1,7 @@
 # code to run in terminal for database creation
 
 # switch to db if exists or create db
-sqlite forkcast.db
+sqlite3 forkcast.db
 
 # create recipe table
 
