@@ -1,0 +1,91 @@
+.photo {
+    padding-bottom: 15px;
+    display: block;
+    margin: 0 auto;
+    width: 60% !important; 
+    height: auto !important;
+}
+
+.heading {
+    padding-top: 12px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    font-size:xx-large;
+}
+
+.secondHeader {
+     padding-top: 5px;
+     display: flex;
+     justify-content: center;
+}
+
+.input-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.input-group-text {
+    padding: 0;
+    border: none;
+    width: 100%;
+}
+
+/* Decorative styles scoped to login-card */
+.login-card {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px 50px;
+    border-radius: 15px;
+    box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    margin: 50px auto;
+    text-align: center;
+}
+
+/* Style the inputs inside login-card only */
+.login-card input[type="text"],
+.login-card input[type="password"] {
+    width: 80%;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+/* Buttons inside login-card */
+.login-card button {
+    width: 85%;
+    padding: 12px;
+    margin-top: 20px;
+    background-color: #2575fc;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.login-card button:hover {
+    background-color: #6a11cb;
+}
+
+/* Paragraph & links inside login-card */
+.login-card p {
+    margin-top: 20px;
+    color: #555;
+    font-size: 14px;
+}
+
+.login-card p a {
+    color: #2575fc;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-card p a:hover {
+    text-decoration: underline;
+}
