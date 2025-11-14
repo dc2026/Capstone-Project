@@ -1,36 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+    <head>
+        <title>W3.CSS Template</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+            rel="stylesheet"
+            href="https://www.w3schools.com/w3css/5/w3.css"
+        />
+        <link rel="stylesheet" type="text/css" href="styles.css" />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css?family=Karma"
+        />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+            crossorigin="anonymous"
+        />
+        <style>
+            body,
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-family: "Karma", sans-serif;
+            }
 
-<head>
-  <title>W3.CSS Template</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
-  <link rel="stylesheet" type="text/css" href="styles.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Karma">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <style>
-    body,
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      font-family: "Karma", sans-serif
-    }
+            .w3-bar-block .w3-bar-item {
+                padding: 20;
+            }
+        </style>
+    </head>
 
-    .w3-bar-block .w3-bar-item {
-      padding: 20
-    }
-  </style>
-</head>
-
-<body>
-
-
-  <!-- Sidebar
+    <body>
+        <!-- Sidebar
   <div id="mySidebar" class="position-fixed top-0 start-0 bg-light border-end shadow-lg"
     style="display: none; z-index: 1050; width: 40%; min-width: 300px; height: 100vh;">
     <div class="d-flex flex-column p-4">
@@ -39,138 +46,169 @@
     </div>
   </div> -->
 
+        <!-- Top menu -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+            <div class="container" style="max-width: 1200px">
+                <button
+                    class="btn btn-outline-secondary me-3"
+                    onclick="w3_open()"
+                >
+                    ☰
+                </button>
+                <span class="navbar-brand fs-2">Forkcast</span>
+            </div>
+        </nav>
 
-  <!-- Top menu -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
-    <div class="container" style="max-width: 1200px;">
-      <button class="btn btn-outline-secondary me-3" onclick="w3_open()">☰</button>
-      <span class="navbar-brand fs-2">Forkcast</span>
-    </div>
-  </nav>
-
-  <!-- Page content -->
-  <div class="container mt-3 pt-3" style="max-width: 600px;">
-    <!-- First Photo Grid -->
-    <div class="row text-center py-4" id="food">
-      <div class="col-12">
-        <img class="img-fluid mb-1"
-          src="https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y29va2luZ3xlbnwwfHwwfHx8MA%3D%3D"
-          alt="Produce on a cutting board" />
-        <h3>Find and Craft new recipes</h3>
-        <p><em>Using your specific ingredients.</em></p>
-      </div>
-    </div>
-
-    <hr />
-  </div>
-
-
-
-  <h3 class="secondHeader">Enter Ingredients</h3><br>
-
-
-  <div class="input-group">
-    <div class="container mt-4">
-      <form id="userForm">
-        <div class="mb-3">
-          <label for="name" class="form-label">Name</label>
-          <input type="text" name="name" id="name" class="form-control form-control-lg">
-        </div>
-
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input type="email" name="email" id="email" class="form-control form-control-lg">
-        </div>
-
-        <div class="mb-3">
-          <label for="ingredients" class="form-label">Ingredients</label>
-          <textarea name="ingredients" id="ingredients" class="form-control form-control-lg" rows="3"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-dark btn-lg">Submit</button>
-      </form>
-    </div>
-    <hr>
-
-    <div id="results" class="container mt-4">
-      <!-- Recipe results will appear here -->
-    </div>
-
-
-
-
-    <script>
-      // Script to open and close sidebar
-      function w3_open() {
-        document.getElementById("mySidebar").style.display = "block";
-      }
-
-      function w3_close() {
-        document.getElementById("mySidebar").style.display = "none";
-      }
-    </script>
-
-    <script>
-      // Frontend JavaScript that handles form submission and displays recipe results
-      // This connects the user interface to the backend API
-      
-      // Add event listener to the form to handle submission
-      document.getElementById("userForm").addEventListener("submit", async (e) => {
-        // Prevent the default form submission behavior (page reload)
-        e.preventDefault();
-        
-        // Get reference to the form element
-        const form = e.target;
-        
-        // Extract form data into a JavaScript object
-        const data = {
-          name: form.name.value,           // User's name from the name input field
-          email: form.email.value,         // User's email from the email input field
-          ingredients: form.ingredients.value // User's ingredients from the textarea
-        };
-        
-        // Send POST request to the backend /submit endpoint
-        const res = await fetch("/submit", {
-          method: "POST",                                    // HTTP POST method
-          headers: { "Content-Type": "application/json" },  // Tell server we're sending JSON
-          body: JSON.stringify(data)                         // Convert JavaScript object to JSON string
-        });
-        
-        // Parse the JSON response from the server
-        const result = await res.json();
-        
-        // Get the div element where we'll display the recipe results
-        const resultsDiv = document.getElementById("results");
-        
-        // Check if the server returned any recipe recommendations
-        if (result.recipes && result.recipes.length > 0) {
-          // Build HTML string to display the recommended recipes
-          let html = "<h3>Recommended Recipes:</h3>";
-          
-          // Loop through each recommended recipe and create a Bootstrap card
-          result.recipes.forEach(recipe => {
-            html += `
-              <div class="card mb-3">
-                <div class="card-body">
-                  <h5 class="card-title">${recipe.recipe}</h5>
-                  <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
-                  <p class="card-text"><strong>Instructions:</strong> ${recipe.instructions}</p>
-                  <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
+        <!-- Page content -->
+        <div class="container mt-3 pt-3" style="max-width: 600px">
+            <!-- First Photo Grid -->
+            <div class="row text-center py-4" id="food">
+                <div class="col-12">
+                    <img
+                        class="img-fluid mb-1"
+                        src="https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y29va2luZ3xlbnwwfHwwfHx8MA%3D%3D"
+                        alt="Produce on a cutting board"
+                    />
+                    <h3>Find and Craft new recipes</h3>
+                    <p><em>Using your specific ingredients.</em></p>
                 </div>
-              </div>
-            `;
-          });
-          
-          // Insert the generated HTML into the results div
-          resultsDiv.innerHTML = html;
-        } else {
-          // Display message if no matching recipes were found
-          resultsDiv.innerHTML = "<p>No matching recipes found.</p>";
-        }
-      });
-    </script>
+            </div>
+
+            <hr />
+        </div>
+
+        <h3 class="secondHeader">Enter Ingredients</h3>
+        <br />
+
+        <div class="input-group">
+            <div class="container mt-4">
+                <form id="userForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input
+                            type="text"
+                            name="name"
+                            id="name"
+                            class="form-control form-control-lg"
+                        />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            class="form-control form-control-lg"
+                        />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ingredients" class="form-label"
+                            >Ingredients</label
+                        >
+                        <textarea
+                            name="ingredients"
+                            id="ingredients"
+                            class="form-control form-control-lg"
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark btn-lg">
+                        Submit
+                    </button>
+                </form>
+            </div>
+            <hr />
+
+            <div id="results" class="container mt-4">
+                <!-- Recipe results will appear here -->
+            </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 
-</body>
+        <script>
+            // Frontend JavaScript that handles form submission and displays recipe results
+            // This connects the user interface to the backend API
 
+            // Add event listener to the form to handle submission
+            document
+                .getElementById("userForm")
+                .addEventListener("submit", async (e) => {
+                    // Prevent the default form submission behavior (page reload)
+                    e.preventDefault();
+
+                    // Get reference to the form element
+                    const form = e.target;
+
+                    // Extract form data into a JavaScript object
+                    const data = {
+                        name: form.name.value, // User's name from the name input field
+                        email: form.email.value, // User's email from the email input field
+                        ingredients: form.ingredients.value, // User's ingredients from the textarea
+                    };
+
+                    // Send POST request to the backend /submit endpoint
+                    const res = await fetch("/submit", {
+                        method: "POST", // HTTP POST method
+                        headers: { "Content-Type": "application/json" }, // Tell server we're sending JSON
+                        body: JSON.stringify(data), // Convert JavaScript object to JSON string
+                    });
+
+                    // Parse the JSON response from the server
+                    const result = await res.json();
+
+                    // Get the div element where we'll display the recipe results
+                    const resultsDiv = document.getElementById("results");
+
+                    // Check if the server returned any recipe recommendations
+                    if (result.recipes && result.recipes.length > 0) {
+                        // Build HTML string to display the recommended recipes
+                        let html = "<h3>Recommended Recipes:</h3>";
+                        // Loop through each recommended recipe and create a Bootstrap card
+                        result.recipes.forEach((recipe, index) => {
+                            const modalId = `modal-${index}`;
+                            html += `
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                      <h5 class="card-title">${recipe.recipe}</h5>
+                                      <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
+                                      <button type="button" class="btn btn-dark btn-lg" style="padding: 2px; font-size: 14px;" data-bs-toggle="modal" data-bs-target="#${modalId}">
+                                        Instructions
+                                      </button>
+                                      <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
+                                    </div>
+                                  </div>
+
+                                  <!-- Modal -->
+                                  <div class="modal fade" id="${modalId}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                      <div class="modal-content">
+                                        <div class="modal-header">
+                                          <h5 class="modal-title">${recipe.recipe} Instructions</h5>
+                                          <button type="button" class="btn btn-custom" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                          ${recipe.instructions}
+                                        </div>
+                                        <div class="modal-footer">
+                                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                `;
+                              });
+                        // Insert the generated HTML into the results div
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        // Display message if no matching recipes were found
+                        resultsDiv.innerHTML =
+                            "<p>No matching recipes found.</p>";
+                    }
+                });
+        </script>
+    </body>
 </html>

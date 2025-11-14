@@ -7,14 +7,13 @@ import webbrowser
 import threading
 from flask import Flask, request, jsonify
 import sqlite3
+from recipealgorithm import RecipeFinder
 
 # Get the absolute path to the project root directory
 # This ensures imports work regardless of where the script is run from
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, 'Danielle-Carrol'))
+sys.path.append(os.path.join(project_root, 'frontend'))
 
-# Import the recipe matching algorithm from Danielle's folder
-from recipealgorithm import RecipeFinder
 
 # Initialize Flask web application
 app = Flask(__name__)
@@ -22,7 +21,7 @@ app.config['SECRET_KEY'] = os.urandom(64)  # Random secret key for session secur
 
 # Initialize the recipe recommendation algorithm with the CSV data
 # This loads all recipes and prepares the machine learning model
-finder = RecipeFinder('frontend/recipe.csv')
+finder = RecipeFinder('recipe.csv')
 
 @app.route('/')
 def home():
@@ -40,7 +39,7 @@ def submit():
     
     # Connect to SQLite database and save user information
     # USER_NAME is auto-increment INTEGER, PASSWORD stores email, USER stores ingredients
-    db_path = os.path.join(project_root, 'Izzie-Nielsen', 'forkcast.db')
+    db_path = os.path.join(project_root, 'backend', 'forkcast.db')
     try:
         conn = sqlite3.connect(db_path, timeout=10)
         cursor = conn.cursor()
