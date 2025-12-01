@@ -26,12 +26,11 @@ CREATE TABLE IF NOT EXISTS users (
 
 # create ingredients table for users
   # seperate table is better/recommended structure choice
-CREATE TABLE IF NOT EXISTS ingredients (
-    USER_NAME TEXT NOT NULL,
+CREATE TABLE ingredients (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
     INGREDIENT TEXT NOT NULL,
-    FOREIGN KEY (USER_NAME) REFERENCES users(USER_NAME)
+    USER_NAME TEXT NOT NULL
 );
-
 
 #### DATA IMPORT #####
 
