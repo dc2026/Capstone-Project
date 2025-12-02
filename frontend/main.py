@@ -44,8 +44,7 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         USER_NAME TEXT PRIMARY KEY,
-        PASSWORD TEXT,
-        USER TEXT
+        PASSWORD TEXT
     );
     """)
 
@@ -104,7 +103,7 @@ def login():
 
         conn = get_db_connection()
         user = conn.execute(
-            "SELECT * FROM users WHERE USER = ?", (username,)
+            "SELECT * FROM users WHERE USER_NAME = ?", (username,)
         ).fetchone()
         conn.close()
 
@@ -128,8 +127,8 @@ def signup():
         conn = get_db_connection()
         try:
             conn.execute(
-                "INSERT INTO users (USER_NAME, PASSWORD, USER) VALUES (?, ?, ?)",
-                (username, hashed_pw, username),  # USER can be display name
+                "INSERT INTO users (USER_NAME, PASSWORD) VALUES (?, ?)",
+                (username, hashed_pw),
             )
             conn.commit()
             print(f"Added user {username} successfully")
@@ -239,16 +238,39 @@ def get_ingredients():
 
 @app.route("/pantry")
 def pantry():
+    if "username" not in session:
+        return redirect("/login")
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(users)")
-    for row in cursor.fetchall():
-        print(dict(row))
+    cursor.execute(
+        "SELECT INGREDIENT FROM ingredients WHERE USER_NAME = ?", (session["username"],)
+    )
+    ingredients = [row[0] for row in cursor.fetchall()]
     conn.close()
 
-    # ingredient_list = [row[0] for row in ingredients]
+    return render_template("pantry.html", items=ingredients)
 
-    return render_template("pantry.html")
+
+@app.route("/add_ingredient", methods=["POST"])
+def add_ingredient():
+    if "username" not in session:
+        return redirect("/login")
+
+    ingredient = request.form.get("ingredient")
+    if not ingredient:
+        return "No ingredient provided", 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO ingredients (USER_NAME, INGREDIENT) VALUES (?, ?)",
+        (session["username"], ingredient),
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect("/pantry")
 
 
 # ============== RUN SERVER ==============
