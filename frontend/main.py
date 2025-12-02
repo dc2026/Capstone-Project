@@ -112,7 +112,7 @@ def login():
             session["username"] = username
             return redirect("/")
         else:
-            return "Invalid credentials", 401
+            return "Invalid credentials"
 
     return render_template("login.html")
 
@@ -129,13 +129,13 @@ def signup():
         try:
             conn.execute(
                 "INSERT INTO users (USER_NAME, PASSWORD, USER) VALUES (?, ?, ?)",
-                (username, hashed_pw, username),  # USER can be display name
+                (username, hashed_pw), 
             )
             conn.commit()
             print(f"Added user {username} successfully")
         except sqlite3.IntegrityError as e:
             print("Database error:", e)
-            return "Username already exists", 400
+            return "Username already exists"
         finally:
             conn.close()
 
