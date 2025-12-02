@@ -236,20 +236,73 @@ def get_ingredients():
 
     return jsonify(ingredient_list)
 
+@app.route("/add_ingredient", methods=["POST"])
+def add_ingredient():
+    """Add a single ingredient to user's pantry"""
+    if "username" not in session:
+        return redirect("/login")
+
+    # Accept both JSON and form data
+    if request.is_json:
+        ingredient = request.get_json().get("ingredient", "").strip()
+        use_json = True
+    else:
+        ingredient = request.form.get("ingredient", "").strip()
+        use_json = False
+    
+    if not ingredient:
+        if use_json:
+            return jsonify({"status": "error", "message": "No ingredient provided"}), 400
+        else:
+            return redirect("/pantry")  # Redirect back even on error
+    
+    print(f"DEBUG: Adding ingredient '{ingredient}' for user {session['username']}")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO ingredients (USER_NAME, INGREDIENT) VALUES (?, ?)",
+            (session["username"], ingredient)
+        )
+        conn.commit()
+        print(f"DEBUG: Successfully added ingredient: {ingredient}")
+        
+        # Return JSON or redirect based on request type
+        if use_json:
+            return jsonify({"status": "success", "message": "Ingredient added"})
+        else:
+            return redirect("/pantry")  # Redirect back to pantry page
+        
+    except Exception as e:
+        print(f"ERROR adding ingredient: {e}")
+        if use_json:
+            return jsonify({"status": "error", "message": str(e)}), 500
+        else:
+            return redirect("/pantry")
+    finally:
+        conn.close()
 
 @app.route("/pantry")
 def pantry():
+    if "username" not in session:
+        return redirect("/login")
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(users)")
-    for row in cursor.fetchall():
-        print(dict(row))
+    
+    # Fetch ingredients for the current user
+    cursor.execute(
+        "SELECT INGREDIENT FROM ingredients WHERE USER_NAME = ?",
+        (session["username"],)
+    )
+    ingredients = cursor.fetchall()
     conn.close()
-
-    # ingredient_list = [row[0] for row in ingredients]
-
-    return render_template("pantry.html")
-
+    
+    # Convert to list of dictionaries to match your template
+    ingredient_list = [{"name": row["INGREDIENT"], "category": "Pantry"} for row in ingredients]
+    
+    return render_template("pantry.html", items=ingredient_list)
 
 # ============== RUN SERVER ==============
 if __name__ == "__main__":
