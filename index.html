@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Forkcast</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css" />
+        <link rel="stylesheet" type="text/css" href="/static/styles.css" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Karma" />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+            crossorigin="anonymous"
+        />
+        <style>
+            body, h1, h2, h3, h4, h5, h6 {
+                font-family: "Karma", sans-serif;
+            }
+            .w3-bar-block .w3-bar-item {
+                padding: 20px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <!-- Spacer to push content under fixed navbar -->
+        <div style="height: 80px;"></div>
+
+        <!-- NAVBAR (matching pantry page style) -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+            <div class="container" style="max-width: 1200px;">
+                <span class="navbar-brand fs-2 fw-bold">Forkcast</span>
+
+                <div class="ms-auto">
+                    <a href="/" class="btn btn-link fw-bold text-decoration-underline">Home</a>
+                    <a href="/pantry" class="btn btn-link">Pantry</a>
+                    <a href="/logout" class="btn btn-link">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Page content -->
+        <div class="container mt-3 pt-3" style="max-width: 600px">
+            <!-- First Photo Grid -->
+            <div class="row text-center py-4" id="food">
+                <div class="col-12">
+                    <img
+                        class="img-fluid mb-1"
+                        src="https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y29va2luZ3xlbnwwfHwwfHx8MA%3D%3D"
+                        alt="Produce on a cutting board"
+                    />
+                    <h3>Find and Craft new recipes</h3>
+                    <p><em>Using your specific ingredients.</em></p>
+                </div>
+            </div>
+
+            <hr />
+        </div>
+
+        <h3 class="secondHeader">Enter Ingredients</h3>
+        <br />
+
+        <div class="input-group">
+            <div class="container mt-4">
+                <form id="userForm">
+
+                    <div class="mb-3">
+                        <label for="ingredients" class="form-label">Ingredients</label>
+                        <textarea
+                            name="ingredients"
+                            id="ingredients"
+                            class="form-control form-control-lg"
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark btn-lg">Submit</button>
+                    <button id="usePantry" type="button" class="btn btn-outline-dark btn-lg">
+                        Use My Pantry Ingredients
+                    </button>
+                </form>
+            </div>
+            <hr />
+
+            <div id="results" class="container mt-4">
+                <!-- Recipe results will appear here -->
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            // Wait for DOM to fully load
+            document.addEventListener("DOMContentLoaded", function() {
+                console.log("DOM loaded, setting up event listeners");
+
+                // Handle "Use My Pantry Ingredients" button
+                const pantryBtn = document.getElementById("usePantry");
+
+                if (pantryBtn) {
+                    pantryBtn.addEventListener("click", async () => {
+                        console.log("Pantry button clicked");
+                        try {
+                            const res = await fetch("/get_my_pantry");
+                            const data = await res.json();
+
+                            if (data.status === "error") {
+                                alert(data.message);
+                                return;
+                            }
+
+                            if (!data.ingredients || data.ingredients.length === 0) {
+                                alert("Your pantry is empty! Add ingredients in the Pantry page first.");
+                                return;
+                            }
+
+                            // Join ingredients with commas and paste into textarea
+                            const ingredientList = data.ingredients.join(", ");
+                            document.getElementById("ingredients").value = ingredientList;
+
+                            console.log(`Loaded ${data.ingredients.length} ingredients from pantry`);
+                        } catch (error) {
+                            console.error("Error loading pantry:", error);
+                            alert("Failed to load pantry ingredients");
+                        }
+                    });
+                }
+
+                // Handle form submission
+                const userForm = document.getElementById("userForm");
+
+                if (userForm) {
+                    userForm.addEventListener("submit", async (e) => {
+                        console.log("Form submitted!");
+                        e.preventDefault();
+
+                        const form = e.target;
+                        const data = {
+                            ingredients: form.ingredients.value,
+                        };
+
+                        console.log("Sending data:", data);
+
+                        try {
+                            const res = await fetch("/submit", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(data),
+                            });
+
+                            console.log("Response status:", res.status);
+                            const result = await res.json();
+                            console.log("Result:", result);
+
+                            const resultsDiv = document.getElementById("results");
+
+                            if (result.recipes && result.recipes.length > 0) {
+                                let html = "<h3>Recommended Recipes:</h3>";
+                                result.recipes.forEach((recipe, index) => {
+                                    const modalId = `modal-${index}`;
+                                    html += `
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">${recipe.recipe}</h5>
+                                                <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
+                                                <button type="button" class="btn btn-dark btn-lg" style="padding: 2px; font-size: 14px;" data-bs-toggle="modal" data-bs-target="#${modalId}">
+                                                    Instructions
+                                                </button>
+                                                <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal fade" id="${modalId}" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">${recipe.recipe} Instructions</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        ${recipe.instructions}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                resultsDiv.innerHTML = html;
+                            } else {
+                                resultsDiv.innerHTML = "<p>No matching recipes found.</p>";
+                            }
+                        } catch (error) {
+                            console.error("Error submitting form:", error);
+                            alert("Error submitting form. Check console for details.");
+                        }
+                    });
+                } else {
+                    console.error("Form #userForm not found!");
+                }
+            });
+        </script>
+    </body>
+</html>
