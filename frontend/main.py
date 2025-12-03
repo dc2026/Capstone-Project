@@ -29,9 +29,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # DON'T drop the ingredients table - only create if it doesn't exist
-    # cursor.execute("DROP TABLE IF EXISTS ingredients;")  # REMOVED THIS LINE
-
+    # recipes table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS recipes (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +41,7 @@ def init_db():
     );
     """)
 
+    # users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         USER_NAME TEXT PRIMARY KEY,
@@ -51,6 +50,7 @@ def init_db():
     );
     """)
 
+    # pantry ingredients table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ingredients (
         USER_NAME TEXT NOT NULL,
@@ -59,6 +59,7 @@ def init_db():
     );
     """)
 
+    # favorites table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS favorites (
         USER_NAME TEXT NOT NULL,
@@ -69,14 +70,45 @@ def init_db():
     );
     """)
 
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    print(cursor.fetchall())  # shows all tables
+    # --- Potlucks: tables that were missing ---
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS potlucks (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        POTLUCK_NAME TEXT NOT NULL,
+        CREATOR TEXT NOT NULL,
+        CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
 
-    cursor.execute("PRAGMA table_info(ingredients);")
-    print(cursor.fetchall())  # shows columns in ingredients
+    # potluck_members with a UNIQUE constraint to avoid duplicate rows
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS potluck_members (
+        POTLUCK_ID INTEGER NOT NULL,
+        USER_NAME TEXT NOT NULL,
+        PRIMARY KEY (POTLUCK_ID, USER_NAME),
+        FOREIGN KEY (POTLUCK_ID) REFERENCES potlucks(ID),
+        FOREIGN KEY (USER_NAME) REFERENCES users(USER_NAME)
+    );
+    """)
+
+    # potluck ingredients (we'll rely on sqlite ROWID for the ID used in deletes)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS potluck_ingredients (
+        POTLUCK_ID INTEGER NOT NULL,
+        USER_NAME TEXT NOT NULL,
+        INGREDIENT TEXT NOT NULL,
+        FOREIGN KEY (POTLUCK_ID) REFERENCES potlucks(ID),
+        FOREIGN KEY (USER_NAME) REFERENCES users(USER_NAME)
+    );
+    """)
+
+    # Debug prints (optional)
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    print("Tables in DB:", cursor.fetchall())
 
     conn.commit()
     conn.close()
+
 
 # Initialize Flask web application
 app = Flask(
@@ -291,7 +323,7 @@ def generate_from_pantry():
         print(f"ERROR generating recipes from pantry: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# pantry routes
+# ============== PANTRY ROUTES ==============
 
 @app.route("/get_ingredients")
 def get_ingredients():
@@ -432,6 +464,8 @@ def remove_ingredient(ingredient_id):
     
     return redirect("/pantry")
 
+# ============== PARTY ROUTES ==============
+
 @app.route("/party")
 def party():
     """Party mode page for large group cooking"""
@@ -439,6 +473,9 @@ def party():
         return redirect("/login")
     
     return render_template("party.html")
+
+
+# ============== FAVORITES ROUTES ==============
 
 @app.route("/save_recipe", methods=["POST"])
 def save_recipe():
@@ -474,6 +511,337 @@ def favorites():
     conn.close()
     
     return render_template("favorites.html", favorites=favorites)
+
+# ============== POTLUCK ==============
+
+@app.route("/potluck")
+def potluck():
+    """Potluck mode page where users collaborate on ingredients"""
+    if "username" not in session:
+        return redirect("/login")
+    return render_template("potluck.html")
+
+
+@app.route("/potluck/create", methods=["POST"])
+def create_potluck():
+    """Create a new potluck event"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    data = request.get_json()
+    potluck_name = data.get("potluck_name", "").strip()
+
+    if not potluck_name:
+        return jsonify({"status": "error", "message": "Potluck name required"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Create new potluck
+        cursor.execute(
+            "INSERT INTO potlucks (POTLUCK_NAME, CREATOR) VALUES (?, ?)",
+            (potluck_name, session["username"])
+        )
+        potluck_id = cursor.lastrowid
+
+        # Add creator as first member
+        cursor.execute(
+            "INSERT INTO potluck_members (POTLUCK_ID, USER_NAME) VALUES (?, ?)",
+            (potluck_id, session["username"])
+        )
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            "status": "success",
+            "message": "Potluck created!",
+            "potluck_id": potluck_id
+        })
+
+    except Exception as e:
+        print(f"ERROR creating potluck: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/list")
+def list_potlucks():
+    """Get all potlucks the user is a member of"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT p.ID, p.POTLUCK_NAME, p.CREATOR, p.CREATED_AT
+            FROM potlucks p
+            JOIN potluck_members pm ON p.ID = pm.POTLUCK_ID
+            WHERE pm.USER_NAME = ?
+            ORDER BY p.CREATED_AT DESC
+        """, (session["username"],))
+
+        potlucks = cursor.fetchall()
+        conn.close()
+
+        potluck_list = [{
+            "id": p["ID"],
+            "name": p["POTLUCK_NAME"],
+            "creator": p["CREATOR"],
+            "created_at": p["CREATED_AT"]
+        } for p in potlucks]
+
+        return jsonify({"status": "success", "potlucks": potluck_list})
+
+    except Exception as e:
+        print(f"ERROR listing potlucks: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/<int:potluck_id>/join", methods=["POST"])
+def join_potluck(potluck_id):
+    """Join an existing potluck"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if potluck exists
+        cursor.execute("SELECT ID FROM potlucks WHERE ID = ?", (potluck_id,))
+        if not cursor.fetchone():
+            return jsonify({"status": "error", "message": "Potluck not found"}), 404
+
+        # Add user to potluck (ignore if already member)
+        try:
+            cursor.execute(
+                "INSERT INTO potluck_members (POTLUCK_ID, USER_NAME) VALUES (?, ?)",
+                (potluck_id, session["username"])
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            pass  # Already a member
+
+        conn.close()
+        return jsonify({"status": "success", "message": "Joined potluck!"})
+
+    except Exception as e:
+        print(f"ERROR joining potluck: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/<int:potluck_id>/ingredients")
+def get_potluck_ingredients(potluck_id):
+    """Get all ingredients for a potluck with who's bringing what"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verify user is member
+        cursor.execute(
+            "SELECT 1 FROM potluck_members WHERE POTLUCK_ID = ? AND USER_NAME = ?",
+            (potluck_id, session["username"])
+        )
+        if not cursor.fetchone():
+            return jsonify({"status": "error", "message": "Not a potluck member"}), 403
+
+        # Get all ingredients
+        cursor.execute("""
+            SELECT ROWID as id, INGREDIENT, USER_NAME
+            FROM potluck_ingredients
+            WHERE POTLUCK_ID = ?
+            ORDER BY USER_NAME, INGREDIENT
+        """, (potluck_id,))
+
+        ingredients = cursor.fetchall()
+        conn.close()
+
+        ingredient_list = [{
+            "id": i["id"],
+            "ingredient": i["INGREDIENT"],
+            "user": i["USER_NAME"]
+        } for i in ingredients]
+
+        return jsonify({"status": "success", "ingredients": ingredient_list})
+
+    except Exception as e:
+        print(f"ERROR getting potluck ingredients: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/<int:potluck_id>/add_ingredient", methods=["POST"])
+def add_potluck_ingredient(potluck_id):
+    """Add ingredient to potluck"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    data = request.get_json()
+    ingredient = data.get("ingredient", "").strip()
+
+    if not ingredient:
+        return jsonify({"status": "error", "message": "No ingredient provided"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verify user is member
+        cursor.execute(
+            "SELECT 1 FROM potluck_members WHERE POTLUCK_ID = ? AND USER_NAME = ?",
+            (potluck_id, session["username"])
+        )
+        if not cursor.fetchone():
+            return jsonify({"status": "error", "message": "Not a potluck member"}), 403
+
+        # Add ingredient
+        cursor.execute(
+            "INSERT INTO potluck_ingredients (POTLUCK_ID, USER_NAME, INGREDIENT) VALUES (?, ?, ?)",
+            (potluck_id, session["username"], ingredient)
+        )
+        conn.commit()
+        conn.close()
+
+        return jsonify({"status": "success", "message": "Ingredient added!"})
+
+    except Exception as e:
+        print(f"ERROR adding potluck ingredient: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/<int:potluck_id>/remove_ingredient/<int:ingredient_id>", methods=["DELETE"])
+def remove_potluck_ingredient(potluck_id, ingredient_id):
+    """Remove ingredient from potluck (only if you added it)"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete only if user owns it
+        cursor.execute(
+            "DELETE FROM potluck_ingredients WHERE ROWID = ? AND POTLUCK_ID = ? AND USER_NAME = ?",
+            (ingredient_id, potluck_id, session["username"])
+        )
+        conn.commit()
+        conn.close()
+
+        return jsonify({"status": "success", "message": "Ingredient removed"})
+
+    except Exception as e:
+        print(f"ERROR removing potluck ingredient: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route("/potluck/<int:potluck_id>/generate_recipes", methods=["POST"])
+def generate_potluck_recipes(potluck_id):
+    """Generate recipes for a potluck and return them in the SAME format as /get_recipes"""
+    
+    if "username" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verify user belongs to the potluck
+        cursor.execute(
+            "SELECT 1 FROM potluck_members WHERE POTLUCK_ID = ? AND USER_NAME = ?",
+            (potluck_id, session["username"])
+        )
+        if not cursor.fetchone():
+            return jsonify({"error": "Not a potluck member"}), 403
+
+        # Get all potluck ingredients
+        cursor.execute(
+            "SELECT INGREDIENT FROM potluck_ingredients WHERE POTLUCK_ID = ?",
+            (potluck_id,)
+        )
+        ingredients = cursor.fetchall()
+
+        if not ingredients:
+            return jsonify({"error": "No ingredients yet"}), 400
+
+        ingredient_list = [row["INGREDIENT"] for row in ingredients]
+        ingredients_string = ", ".join(ingredient_list)
+
+        print(f"DEBUG: Generating recipes for potluck {potluck_id}: {ingredients_string}")
+
+        # Generate recipes using ingredient finder
+        matches = finder.find_recipes(ingredients_string, top_n=5)
+
+        # Standardize data fields
+        for m in matches:
+            m["cook_time"] = int(m["cook_time"])
+            m["similarity"] = float(m["similarity"])
+
+        # --- Save generated recipes to database (optional but matches index.html behavior) ---
+        recipe_ids = []
+        for m in matches:
+            cursor.execute(
+                """
+                INSERT INTO potluck_recipes (POTLUCK_ID, NAME, INGREDIENTS, TIME, INSTRUCTIONS, CUISINE)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    potluck_id,
+                    m["name"],
+                    ", ".join(m["ingredients"]),
+                    m["cook_time"],
+                    m["steps"],
+                    m.get("cuisine", "Unknown")
+                )
+            )
+            recipe_ids.append(cursor.lastrowid)
+
+        conn.commit()
+
+        # Re-fetch recipes so the return EXACTLY matches /get_recipes
+        cursor.execute(
+            """
+            SELECT ID, NAME, INGREDIENTS, TIME, INSTRUCTIONS, CUISINE
+            FROM potluck_recipes
+            WHERE POTLUCK_ID = ?
+            ORDER BY ID DESC
+            LIMIT 5
+            """,
+            (potluck_id,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        # Convert DB rows → identical JSON structure as /get_recipes
+        recipe_list = []
+        for r in rows:
+            recipe_list.append({
+                "id": r["ID"],
+                "name": r["NAME"],
+                "ingredients": r["INGREDIENTS"],
+                "time": r["TIME"],
+                "instructions": r["INSTRUCTIONS"],
+                "cuisine": r["CUISINE"]
+            })
+
+        return jsonify(recipe_list)
+
+    except Exception as e:
+        print(f"ERROR generating potluck recipes: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+
 
 # ============== RUN SERVER ==============
 if __name__ == "__main__":

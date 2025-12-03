@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potluck Planner - Forkcast</title>
+
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css?family=Karma" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    />
+</head>
+<body>
+
+    <!-- Spacer to push content under fixed navbar -->
+        <div style="height: 100px;"></div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+        <div class="container" style="max-width: 1200px;">
+            <span class="navbar-brand fs-2 fw-bold">Forkcast</span>
+
+            <div class="nav-links ms-auto">
+                <a href="/">Home</a>
+                <a href="/pantry">My Pantry</a>
+                <a href="/party">Party Mode</a>
+                <a href="/potluck" class="active">Potluck Planner</a>
+                <a href="/favorites">My Favorites</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- LIST VIEW -->
+        <div id="potluckListView" class="potluck-wrapper">
+            <div class="potluck-card">
+
+                <h2 class="heading">Potluck Planner</h2>
+                <p class="secondHeader">
+                    Create a potluck and collaborate with friends on who’s bringing what!
+                </p>
+
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="potluckNameInput" 
+                        class="input-field"
+                        placeholder="Enter potluck name (e.g., 'Thanksgiving Dinner')"
+                    >
+                    <button class="btn btn-primary" onclick="createPotluck()">Create Potluck</button>
+                </div>
+
+
+                <!-- Join Potluck -->
+                <div style="background: #e0f2fe; padding: 15px; border-radius: 10px; margin-top: 25px;">
+                    <h4>Join Another Potluck</h4>
+                    <p>Enter a Potluck ID to join</p>
+
+                    <div style="display: flex; gap: 10px;">
+                        <input 
+                            type="number" 
+                            id="joinPotluckIdInput"
+                            class="input-field"
+                            placeholder="Enter Potluck ID"
+                        >
+                        <button class="btn btn-success" onclick="joinPotluckById()">Join</button>
+                    </div>
+                </div>
+
+                <div id="alertContainer"></div>
+
+                <h3 class="heading" style="margin-top: 30px; font-size: 26px;">Your Potlucks</h3>
+                <div id="potlucksList" class="potlucks-grid">
+                    <div class="empty-state">
+                        <p>Loading potlucks...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILS VIEW -->
+        <div id="potluckDetailsView" class="potluck-wrapper" style="display: none;">
+            <div class="potluck-card">
+
+                <button class="btn back-btn" onclick="backToPotlucks()">← Back to Potlucks</button>
+
+                <h2 class="heading" id="potluckTitle">Potluck Name</h2>
+                <p id="potluckCreator" class="secondHeader"></p>
+
+                <!-- Share Potluck -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 10px; margin-top: 25px;">
+                    <h4>Share This Potluck</h4>
+                    <p>Give this Potluck ID to friends so they can join:</p>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input 
+                            type="text" 
+                            id="potluckIdDisplay" 
+                            class="input-field" 
+                            readonly
+                            style="background: white;"
+                        >
+                        <button class="btn btn-primary" onclick="copyPotluckId()">Copy ID</button>
+                    </div>
+                </div>
+
+
+                <div id="potluckAlertContainer"></div>
+
+                <!-- Add Ingredient -->
+                <div class="ingredient-input-group" style="margin-top: 25px;">
+                    <input 
+                        type="text" 
+                        id="ingredientInput" 
+                        class="input-field" 
+                        placeholder="What are you bringing?"
+                        onkeypress="if(event.key === 'Enter') addIngredient()"
+                    >
+                    <button class="btn btn-success" onclick="addIngredient()">Add</button>
+                </div>
+
+                <!-- Ingredients List -->
+                <h3 class="heading" style="margin-top: 35px; font-size: 26px;">Potluck Ingredients</h3>
+                <div id="ingredientsList" class="ingredients-list">
+                    <div class="empty-state">
+                        <p>No ingredients yet. Be the first to add one!</p>
+                    </div>
+                </div>
+
+                <!-- Generate Recipes -->
+                <button class="btn btn-primary generate-recipes-btn" onclick="generateRecipes()">
+                    Generate Recipes from Ingredients
+                </button>
+
+                <!-- Recipes -->
+                <div id="recipesSection" class="recipes-section" style="display: none;">
+                    <h3 class="heading" style="font-size: 26px;">Recipe Suggestions</h3>
+                    <div id="recipesList"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        let currentPotluckId = null;
+
+        window.onload = function() {
+            loadPotlucks();
+        };
+
+        function showAlert(message, isError=false) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert ${isError ? 'alert-error' : 'alert-success'}">${message}</div>
+            `;
+        }
+
+        function showPotluckAlert(message, isError=false) {
+            const container = document.getElementById('potluckAlertContainer');
+            container.innerHTML = `
+                <div class="alert ${isError ? 'alert-error' : 'alert-success'}">${message}</div>
+            `;
+        }
+
+        /* ------- CREATE POTLUCK ------- */
+        async function createPotluck() {
+            const potluckName = document.getElementById('potluckNameInput').value.trim();
+            if (!potluckName) return showAlert("Please enter a potluck name", true);
+
+            try {
+                const response = await fetch('/potluck/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ potluck_name: potluckName })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showAlert("Potluck created!");
+                    document.getElementById('potluckNameInput').value = "";
+                    loadPotlucks();
+                } else {
+                    showAlert(data.message, true);
+                }
+            } catch {
+                showAlert("Error creating potluck", true);
+            }
+        }
+
+        /* ------- LOAD POTLUCK LIST ------- */
+        async function loadPotlucks() {
+            try {
+                const response = await fetch('/potluck/list');
+                const data = await response.json();
+
+                const list = document.getElementById('potlucksList');
+
+                if (!data.potlucks || data.potlucks.length === 0) {
+                    list.innerHTML = `<div class="empty-state"><p>No potlucks yet.</p></div>`;
+                    return;
+                }
+
+                list.innerHTML = data.potlucks
+                    .map(p => `
+                        <div class="potluck-card-item" onclick="openPotluck(${p.id}, '${p.name}', '${p.creator}')">
+                            <h4>${p.name}</h4>
+                            <p><strong>Created by:</strong> ${p.creator}</p>
+                            <p><strong>Date:</strong> ${new Date(p.created_at).toLocaleDateString()}</p>
+                        </div>
+                    `)
+                    .join('');
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        /* ------- OPEN POTLUCK ------- */
+        function openPotluck(id, name, creator) {
+            currentPotluckId = id;
+
+            document.getElementById('potluckTitle').textContent = name;
+            document.getElementById('potluckCreator').textContent = `Created by ${creator}`;
+            document.getElementById('potluckIdDisplay').value = id;
+
+            document.getElementById('potluckListView').style.display = 'none';
+            document.getElementById('potluckDetailsView').style.display = 'block';
+
+            loadPotluckIngredients();
+        }
+
+        /* ------- COPY ID ------- */
+        function copyPotluckId() {
+            navigator.clipboard.writeText(
+                document.getElementById('potluckIdDisplay').value
+            );
+            showPotluckAlert("Potluck ID copied!");
+        }
+
+        /* ------- JOIN POTLUCK ------- */
+        async function joinPotluckById() {
+            const id = document.getElementById('joinPotluckIdInput').value.trim();
+            if (!id) return showPotluckAlert("Enter a Potluck ID", true);
+
+            try {
+                const response = await fetch(`/potluck/${id}/join`, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showPotluckAlert("Joined successfully!");
+                    document.getElementById('joinPotluckIdInput').value = '';
+                } else {
+                    showPotluckAlert(data.message, true);
+                }
+            } catch {
+                showPotluckAlert("Error joining potluck", true);
+            }
+        }
+
+        /* ------- BACK ------- */
+        function backToPotlucks() {
+            document.getElementById('potluckDetailsView').style.display = 'none';
+            document.getElementById('potluckListView').style.display = 'block';
+            currentPotluckId = null;
+            loadPotlucks();
+        }
+
+        /* ------- INGREDIENTS ------- */
+        async function loadPotluckIngredients() {
+            try {
+                const response = await fetch(`/potluck/${currentPotluckId}/ingredients`);
+                const data = await response.json();
+
+                const list = document.getElementById('ingredientsList');
+
+                if (!data.ingredients || data.ingredients.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state"><p>No ingredients yet.</p></div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = data.ingredients
+                    .map(i => `
+                        <div class="ingredient-item">
+                            <div>
+                                <strong>${i.ingredient}</strong>
+                                <span class="user-badge">${i.user}</span>
+                            </div>
+                            <button class="btn btn-danger" onclick="removeIngredient(${i.id})">Remove</button>
+                        </div>
+                    `)
+                    .join('');
+            } catch {}
+        }
+
+        async function addIngredient() {
+            const ingredient = document.getElementById('ingredientInput').value.trim();
+            if (!ingredient) return showPotluckAlert("Enter an ingredient", true);
+
+            try {
+                await fetch(`/potluck/${currentPotluckId}/add_ingredient`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingredient })
+                });
+
+                document.getElementById('ingredientInput').value = '';
+                loadPotluckIngredients();
+            } catch {}
+        }
+
+        async function removeIngredient(id) {
+            try {
+                await fetch(`/potluck/${currentPotluckId}/remove_ingredient/${id}`, {
+                    method: 'DELETE'
+                });
+                loadPotluckIngredients();
+            } catch {}
+        }
+
+        /* ------- RECIPES ------- */
+        async function generateRecipes() {
+            try {
+                const response = await fetch(`/potluck/${currentPotluckId}/generate_recipes`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                const section = document.getElementById('recipesSection');
+                const list = document.getElementById('recipesList');
+
+                if (!data.recipes || data.recipes.length === 0) {
+                    list.innerHTML = `<p>No recipes found.</p>`;
+                } else {
+                    list.innerHTML = data.recipes
+                        .map(r => `
+                            <div class="recipe-card-result">
+                                <h3>${r.name}</h3>
+                                <div class="recipe-meta">
+                                    <span>${r.cuisine}</span> •
+                                    <span>${r.cook_time} mins</span>
+                                </div>
+                                <p><strong>Ingredients:</strong> ${r.ingredients}</p>
+                                <p><strong>Instructions:</strong> ${r.instructions}</p>
+                            </div>
+                        `)
+                        .join('');
+                }
+
+                section.style.display = 'block';
+
+            } catch {}
+        }
+    </script>
+
+</body>
+</html>
