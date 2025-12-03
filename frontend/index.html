@@ -35,6 +35,8 @@
                 <div class="ms-auto">
                     <a href="/" class="btn btn-link fw-bold text-decoration-underline">Home</a>
                     <a href="/pantry" class="btn btn-link">Pantry</a>
+                    <a href="/party" class="btn btn-link">Party Mode</a>
+                    <a href="/favorites" class="btn btn-link">My Favorites</a>
                     <a href="/logout" class="btn btn-link">Logout</a>
                 </div>
             </div>
@@ -73,6 +75,81 @@
                             class="form-control form-control-lg"
                             rows="3"
                         ></textarea>
+                        <div class="mt-2">
+                            <small class="text-muted">Quick add:</small><br>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1" onclick="addIngredient('garlic')">Garlic</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1" onclick="addIngredient('onion')">Onion</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1" onclick="addIngredient('cheese')">Cheese</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1" onclick="addIngredient('tomato')">Tomato</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1" onclick="addIngredient('chicken')">Chicken</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="partyMode">
+                            <label class="form-check-label" for="partyMode">🎉 Party Mode (Large Servings)</label>
+                        </div>
+                        <div id="servingSizeDiv" class="mt-2" style="display: none;">
+                            <label for="servingSize" class="form-label">Number of People:</label>
+                            <input type="number" class="form-control" id="servingSize" min="1" max="50" value="8">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dietary Restrictions (Optional)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="vegetarian" id="vegetarian">
+                            <label class="form-check-label" for="vegetarian">Vegetarian</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="vegan" id="vegan">
+                            <label class="form-check-label" for="vegan">Vegan</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="pescatarian" id="pescatarian">
+                            <label class="form-check-label" for="pescatarian">Pescatarian</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="gluten-free" id="gluten-free">
+                            <label class="form-check-label" for="gluten-free">Gluten-Free</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="keto" id="keto">
+                            <label class="form-check-label" for="keto">Keto</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="paleo" id="paleo">
+                            <label class="form-check-label" for="paleo">Paleo</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Allergies (Optional)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="nuts" id="nuts">
+                            <label class="form-check-label" for="nuts">Nuts</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="dairy" id="dairy">
+                            <label class="form-check-label" for="dairy">Dairy</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="shellfish" id="shellfish">
+                            <label class="form-check-label" for="shellfish">Shellfish</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="eggs" id="eggs">
+                            <label class="form-check-label" for="eggs">Eggs</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="soy" id="soy">
+                            <label class="form-check-label" for="soy">Soy</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="sesame" id="sesame">
+                            <label class="form-check-label" for="sesame">Sesame</label>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-dark btn-lg">Submit</button>
@@ -91,9 +168,47 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
+            function addIngredient(ingredient) {
+                const textarea = document.getElementById('ingredients');
+                const current = textarea.value.trim();
+                if (current) {
+                    textarea.value = current + ', ' + ingredient;
+                } else {
+                    textarea.value = ingredient;
+                }
+            }
+
+            async function saveRecipe(recipe, ingredients, instructions) {
+                try {
+                    const res = await fetch('/save_recipe', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({recipe, ingredients, instructions})
+                    });
+                    const result = await res.json();
+                    alert(result.message);
+                } catch (error) {
+                    alert('Error saving recipe');
+                }
+            }
+
             // Wait for DOM to fully load
             document.addEventListener("DOMContentLoaded", function() {
                 console.log("DOM loaded, setting up event listeners");
+
+                // Handle party mode toggle
+                const partyModeToggle = document.getElementById('partyMode');
+                const servingSizeDiv = document.getElementById('servingSizeDiv');
+                
+                if (partyModeToggle && servingSizeDiv) {
+                    partyModeToggle.addEventListener('change', function() {
+                        if (this.checked) {
+                            servingSizeDiv.style.display = 'block';
+                        } else {
+                            servingSizeDiv.style.display = 'none';
+                        }
+                    });
+                }
 
                 // Handle "Use My Pantry Ingredients" button
                 const pantryBtn = document.getElementById("usePantry");
@@ -136,8 +251,35 @@
                         e.preventDefault();
 
                         const form = e.target;
+                        
+                        // Get selected dietary restrictions
+                        const restrictions = [];
+                        if (document.getElementById('vegetarian').checked) restrictions.push('vegetarian');
+                        if (document.getElementById('vegan').checked) restrictions.push('vegan');
+                        if (document.getElementById('pescatarian').checked) restrictions.push('pescatarian');
+                        if (document.getElementById('gluten-free').checked) restrictions.push('gluten-free');
+                        if (document.getElementById('keto').checked) restrictions.push('keto');
+                        if (document.getElementById('paleo').checked) restrictions.push('paleo');
+                        
+                        // Get selected allergies
+                        const allergies = [];
+                        if (document.getElementById('nuts').checked) allergies.push('nuts');
+                        if (document.getElementById('dairy').checked) allergies.push('dairy');
+                        if (document.getElementById('shellfish').checked) allergies.push('shellfish');
+                        if (document.getElementById('eggs').checked) allergies.push('eggs');
+                        if (document.getElementById('soy').checked) allergies.push('soy');
+                        if (document.getElementById('sesame').checked) allergies.push('sesame');
+                        
+                        // Get party mode settings
+                        const partyMode = document.getElementById('partyMode').checked;
+                        const servingSize = partyMode ? parseInt(document.getElementById('servingSize').value) : 1;
+                        
                         const data = {
                             ingredients: form.ingredients.value,
+                            restrictions: restrictions,
+                            allergies: allergies,
+                            partyMode: partyMode,
+                            servingSize: servingSize
                         };
 
                         console.log("Sending data:", data);
@@ -159,13 +301,17 @@
                                 let html = "<h3>Recommended Recipes:</h3>";
                                 result.recipes.forEach((recipe, index) => {
                                     const modalId = `modal-${index}`;
+                                    const partyBadge = recipe.party_mode ? `<span class="badge bg-success ms-2">🎉 Party Size: ${recipe.serving_size} people</span>` : '';
                                     html += `
                                         <div class="card mb-3">
                                             <div class="card-body">
-                                                <h5 class="card-title">${recipe.recipe}</h5>
+                                                <h5 class="card-title">${recipe.recipe}${partyBadge}</h5>
                                                 <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
                                                 <button type="button" class="btn btn-dark btn-lg" style="padding: 2px; font-size: 14px;" data-bs-toggle="modal" data-bs-target="#${modalId}">
                                                     Instructions
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="saveRecipe('${recipe.recipe}', '${recipe.ingredients}', '${recipe.instructions}')">
+                                                    💾 Save
                                                 </button>
                                                 <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
                                             </div>

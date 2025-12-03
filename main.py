@@ -14,10 +14,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 # Ensures imports work regardless of where the script is run from
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Add path for recipe algorithm imports
-sys.path.append(os.path.dirname(__file__))
-
-# Import the recipe matching algorithm
+# Import the recipe matching algorithm from frontend directory
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'frontend'))
 from recipealgorithm import RecipeFinder
 
 # Setup paths
@@ -59,16 +57,6 @@ def init_db():
     );
     """)
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS favorites (
-        USER_NAME TEXT NOT NULL,
-        RECIPE_NAME TEXT NOT NULL,
-        INGREDIENTS TEXT NOT NULL,
-        INSTRUCTIONS TEXT NOT NULL,
-        FOREIGN KEY (USER_NAME) REFERENCES users(USER_NAME)
-    );
-    """)
-
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     print(cursor.fetchall())  # shows all tables
 
@@ -101,29 +89,6 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
-def scale_ingredients(ingredients_text, serving_size):
-    """Scale ingredient quantities for party mode"""
-    import re
-    
-    def scale_number(match):
-        number = float(match.group(1))
-        scaled = number * serving_size
-        # Format nicely (remove .0 for whole numbers)
-        if scaled == int(scaled):
-            return str(int(scaled))
-        else:
-            return f"{scaled:.1f}"
-    
-    # Scale numbers followed by common units
-    scaled = re.sub(r'(\d+(?:\.\d+)?)\s*(cups?|tbsp|tsp|lbs?|oz|pounds?|ounces?|cloves?|pieces?)', 
-                   lambda m: scale_number(m) + ' ' + m.group(2), ingredients_text)
-    
-    # Scale standalone numbers at the beginning of ingredient items
-    scaled = re.sub(r'\b(\d+(?:\.\d+)?)\s+', 
-                   lambda m: scale_number(m) + ' ', scaled)
-    
-    return scaled
 
 
 # ============== AUTHENTICATION ROUTES ==============
@@ -209,9 +174,8 @@ def submit():
     # Get optional dietary restrictions and allergies from request
     restrictions = data.get("restrictions", [])
     allergies = data.get("allergies", [])
-    party_mode = data.get("partyMode", False)
     
-    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode)
+    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies)
     
     for match in matches:
         match["cook_time"] = int(match["cook_time"])
@@ -277,10 +241,9 @@ def generate_from_pantry():
         # Get optional dietary restrictions and allergies from request
         restrictions = data.get("restrictions", [])
         allergies = data.get("allergies", [])
-        party_mode = data.get("partyMode", False)
         
         # Find recipe matches with optional dietary filtering
-        matches = finder.find_recipes(ingredients_string, top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode)
+        matches = finder.find_recipes(ingredients_string, top_n=5, restrictions=restrictions, allergies=allergies)
         for match in matches:
             match["cook_time"] = int(match["cook_time"])
             match["similarity"] = float(match["similarity"])
@@ -432,48 +395,7 @@ def remove_ingredient(ingredient_id):
     
     return redirect("/pantry")
 
-@app.route("/party")
-def party():
-    """Party mode page for large group cooking"""
-    if "username" not in session:
-        return redirect("/login")
-    
-    return render_template("party.html")
 
-@app.route("/save_recipe", methods=["POST"])
-def save_recipe():
-    if "username" not in session:
-        return jsonify({"status": "error", "message": "Not logged in"}), 401
-    
-    data = request.get_json()
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO favorites (USER_NAME, RECIPE_NAME, INGREDIENTS, INSTRUCTIONS) VALUES (?, ?, ?, ?)",
-            (session["username"], data["recipe"], data["ingredients"], data["instructions"])
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({"status": "success", "message": "Recipe saved!"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/favorites")
-def favorites():
-    if "username" not in session:
-        return redirect("/login")
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT ROWID, RECIPE_NAME, INGREDIENTS, INSTRUCTIONS FROM favorites WHERE USER_NAME = ?",
-        (session["username"],)
-    )
-    favorites = cursor.fetchall()
-    conn.close()
-    
-    return render_template("favorites.html", favorites=favorites)
 
 # ============== RUN SERVER ==============
 if __name__ == "__main__":
