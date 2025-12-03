@@ -4,15 +4,9 @@
         <title>Forkcast</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link
-            rel="stylesheet"
-            href="https://www.w3schools.com/w3css/5/w3.css"
-        />
-        <link rel="stylesheet" type="text/css" href="styles.css" />
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css?family=Karma"
-        />
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css" />
+        <link rel="stylesheet" type="text/css" href="/static/styles.css" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Karma" />
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
             rel="stylesheet"
@@ -20,43 +14,29 @@
             crossorigin="anonymous"
         />
         <style>
-            body,
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
+            body, h1, h2, h3, h4, h5, h6 {
                 font-family: "Karma", sans-serif;
             }
-
             .w3-bar-block .w3-bar-item {
-                padding: 20;
+                padding: 20px;
             }
         </style>
     </head>
 
     <body>
+        <!-- Spacer to push content under fixed navbar -->
+        <div style="height: 80px;"></div>
 
-        <nav
-            class="w3-sidebar w3-bar-block w3-card w3-top w3-xlarge w3-animate-left"
-            style="display: none; z-index: 2; width: 40%; min-width: 300px; padding-top: 65px"
-            id="mySidebar"
-        >
-        <a href="/pantry" onclick="w3_close()" class="w3-bar-item w3-button">Pantry</a>
-         <a onclick="w3_close()" class="w3-bar-item w3-button">Close</a>
-    </nav>
+        <!-- NAVBAR (matching pantry page style) -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+            <div class="container" style="max-width: 1200px;">
+                <span class="navbar-brand fs-2 fw-bold">Forkcast</span>
 
-        <!-- Top menu -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
-            <div class="container" style="max-width: 1200px">
-                <button
-                    class="btn btn-outline-secondary me-3"
-                    onclick="w3_open()"
-                >
-                    ☰
-                </button>
-                <span class="navbar-brand fs-2">Forkcast</span>
+                <div class="ms-auto">
+                    <a href="/" class="btn btn-link fw-bold text-decoration-underline">Home</a>
+                    <a href="/pantry" class="btn btn-link">Pantry</a>
+                    <a href="/logout" class="btn btn-link">Logout</a>
+                </div>
             </div>
         </nav>
 
@@ -84,30 +64,9 @@
         <div class="input-group">
             <div class="container mt-4">
                 <form id="userForm">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input
-                            type="text"
-                            name="name"
-                            id="name"
-                            class="form-control form-control-lg"
-                        />
-                    </div>
 
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            id="email"
-                            class="form-control form-control-lg"
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="ingredients" class="form-label"
-                            >Ingredients</label
-                        >
+                        <label for="ingredients" class="form-label">Ingredients</label>
                         <textarea
                             name="ingredients"
                             id="ingredients"
@@ -116,8 +75,9 @@
                         ></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-dark btn-lg">
-                        Submit
+                    <button type="submit" class="btn btn-dark btn-lg">Submit</button>
+                    <button id="usePantry" type="button" class="btn btn-outline-dark btn-lg">
+                        Use My Pantry Ingredients
                     </button>
                 </form>
             </div>
@@ -126,100 +86,122 @@
             <div id="results" class="container mt-4">
                 <!-- Recipe results will appear here -->
             </div>
+        </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
-        // Script to open and close sidebar
-        function w3_open() {
-          document.getElementById("mySidebar").style.display = "block";
-        }
+            // Wait for DOM to fully load
+            document.addEventListener("DOMContentLoaded", function() {
+                console.log("DOM loaded, setting up event listeners");
 
-        function w3_close() {
-          document.getElementById("mySidebar").style.display = "none";
-        }
-        </script>
+                // Handle "Use My Pantry Ingredients" button
+                const pantryBtn = document.getElementById("usePantry");
 
-        <script>
-            // Frontend JavaScript that handles form submission and displays recipe results
-            // This connects the user interface to the backend API
+                if (pantryBtn) {
+                    pantryBtn.addEventListener("click", async () => {
+                        console.log("Pantry button clicked");
+                        try {
+                            const res = await fetch("/get_my_pantry");
+                            const data = await res.json();
 
-            // Add event listener to the form to handle submission
-            document
-                .getElementById("userForm")
-                .addEventListener("submit", async (e) => {
-                    // Prevent the default form submission behavior (page reload)
-                    e.preventDefault();
+                            if (data.status === "error") {
+                                alert(data.message);
+                                return;
+                            }
 
-                    // Get reference to the form element
-                    const form = e.target;
+                            if (!data.ingredients || data.ingredients.length === 0) {
+                                alert("Your pantry is empty! Add ingredients in the Pantry page first.");
+                                return;
+                            }
 
-                    // Extract form data into a JavaScript object
-                    const data = {
-                        name: form.name.value, // User's name from the name input field
-                        email: form.email.value, // User's email from the email input field
-                        ingredients: form.ingredients.value, // User's ingredients from the textarea
-                    };
+                            // Join ingredients with commas and paste into textarea
+                            const ingredientList = data.ingredients.join(", ");
+                            document.getElementById("ingredients").value = ingredientList;
 
-                    // Send POST request to the backend /submit endpoint
-                    const res = await fetch("/submit", {
-                        method: "POST", // HTTP POST method
-                        headers: { "Content-Type": "application/json" }, // Tell server we're sending JSON
-                        body: JSON.stringify(data), // Convert JavaScript object to JSON string
+                            console.log(`Loaded ${data.ingredients.length} ingredients from pantry`);
+                        } catch (error) {
+                            console.error("Error loading pantry:", error);
+                            alert("Failed to load pantry ingredients");
+                        }
                     });
+                }
 
-                    // Parse the JSON response from the server
-                    const result = await res.json();
+                // Handle form submission
+                const userForm = document.getElementById("userForm");
 
-                    // Get the div element where we'll display the recipe results
-                    const resultsDiv = document.getElementById("results");
+                if (userForm) {
+                    userForm.addEventListener("submit", async (e) => {
+                        console.log("Form submitted!");
+                        e.preventDefault();
 
-                    // Check if the server returned any recipe recommendations
-                    if (result.recipes && result.recipes.length > 0) {
-                        // Build HTML string to display the recommended recipes
-                        let html = "<h3>Recommended Recipes:</h3>";
-                        // Loop through each recommended recipe and create a Bootstrap card
-                        result.recipes.forEach((recipe, index) => {
-                            const modalId = `modal-${index}`;
-                            html += `
-                                <div class="card mb-3">
-                                    <div class="card-body">
-                                      <h5 class="card-title">${recipe.recipe}</h5>
-                                      <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
-                                      <button type="button" class="btn btn-dark btn-lg" style="padding: 2px; font-size: 14px;" data-bs-toggle="modal" data-bs-target="#${modalId}">
-                                        Instructions
-                                      </button>
-                                      <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
-                                    </div>
-                                  </div>
+                        const form = e.target;
+                        const data = {
+                            ingredients: form.ingredients.value,
+                        };
 
-                                  <!-- Modal -->
-                                  <div class="modal fade" id="${modalId}" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                                      <div class="modal-content">
-                                        <div class="modal-header">
-                                          <h5 class="modal-title">${recipe.recipe} Instructions</h5>
-                                          <button type="button" class="btn btn-custom" data-bs-dismiss="modal" aria-label="Close"></button>
+                        console.log("Sending data:", data);
+
+                        try {
+                            const res = await fetch("/submit", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(data),
+                            });
+
+                            console.log("Response status:", res.status);
+                            const result = await res.json();
+                            console.log("Result:", result);
+
+                            const resultsDiv = document.getElementById("results");
+
+                            if (result.recipes && result.recipes.length > 0) {
+                                let html = "<h3>Recommended Recipes:</h3>";
+                                result.recipes.forEach((recipe, index) => {
+                                    const modalId = `modal-${index}`;
+                                    html += `
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">${recipe.recipe}</h5>
+                                                <p class="card-text"><strong>Ingredients:</strong> ${recipe.ingredients}</p>
+                                                <button type="button" class="btn btn-dark btn-lg" style="padding: 2px; font-size: 14px;" data-bs-toggle="modal" data-bs-target="#${modalId}">
+                                                    Instructions
+                                                </button>
+                                                <p class="card-text"><small class="text-muted">Cook time: ${recipe.cook_time} min | Cuisine: ${recipe.cuisine}</small></p>
+                                            </div>
                                         </div>
-                                        <div class="modal-body">
-                                          ${recipe.instructions}
+
+                                        <div class="modal fade" id="${modalId}" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">${recipe.recipe} Instructions</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        ${recipe.instructions}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="modal-footer">
-                                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                `;
-                              });
-                        // Insert the generated HTML into the results div
-                        resultsDiv.innerHTML = html;
-                    } else {
-                        // Display message if no matching recipes were found
-                        resultsDiv.innerHTML =
-                            "<p>No matching recipes found.</p>";
-                    }
-                });
+                                    `;
+                                });
+                                resultsDiv.innerHTML = html;
+                            } else {
+                                resultsDiv.innerHTML = "<p>No matching recipes found.</p>";
+                            }
+                        } catch (error) {
+                            console.error("Error submitting form:", error);
+                            alert("Error submitting form. Check console for details.");
+                        }
+                    });
+                } else {
+                    console.error("Form #userForm not found!");
+                }
+            });
         </script>
     </body>
 </html>

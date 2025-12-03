@@ -28,7 +28,9 @@ DB_PATH = os.path.join(basedir, "..", "backend", "forkcast.db")
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DROP TABLE IF EXISTS ingredients;")
+    
+    # DON'T drop the ingredients table - only create if it doesn't exist
+    # cursor.execute("DROP TABLE IF EXISTS ingredients;")  # REMOVED THIS LINE
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS recipes (
@@ -65,7 +67,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
 
 # Initialize Flask web application
 app = Flask(
@@ -129,7 +130,7 @@ def signup():
         try:
             conn.execute(
                 "INSERT INTO users (USER_NAME, PASSWORD, USER) VALUES (?, ?, ?)",
-                (username, hashed_pw), 
+                (username, hashed_pw, username),  # Fixed: added third parameter
             )
             conn.commit()
             print(f"Added user {username} successfully")
@@ -171,22 +172,20 @@ def submit():
         return jsonify({"status": "error", "message": "Not logged in"}), 401
 
     data = request.get_json()
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO ingredients (USER_NAME, INGREDIENT) VALUES (?, ?)",
-            (session["username"], data.get("ingredients", "")),
-        )
-        conn.commit()
-    finally:
-        conn.close()  # pyright: ignore[reportPossiblyUnboundVariable]
+    
+    print(f"DEBUG: Received data: {data}")
+    print(f"DEBUG: Ingredients to search: {data.get('ingredients', '')}")
 
     matches = finder.find_recipes(data["ingredients"], top_n=5)
+    
+    print(f"DEBUG: Found {len(matches)} matches")
+    print(f"DEBUG: First match (if any): {matches[0] if matches else 'None'}")
+    
     for match in matches:
         match["cook_time"] = int(match["cook_time"])
         match["similarity"] = float(match["similarity"])
+
+    print(f"DEBUG: Returning recipes: {matches}")
 
     return jsonify({"status": "success", "recipes": matches})
 
@@ -221,6 +220,48 @@ def get_recipes():
 
     return jsonify(recipe_list)
 
+@app.route("/generate_from_pantry", methods=["POST"])
+def generate_from_pantry():
+    """Generate recipes based on user's pantry ingredients"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+    
+    try:
+        # Get all ingredients from user's pantry
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT INGREDIENT FROM ingredients WHERE USER_NAME = ?",
+            (session["username"],)
+        )
+        ingredients = cursor.fetchall()
+        conn.close()
+        
+        if not ingredients:
+            return jsonify({
+                "status": "error", 
+                "message": "No ingredients in pantry. Add some first!"
+            }), 400
+        
+        # Convert to comma-separated string
+        ingredient_list = [row["INGREDIENT"] for row in ingredients]
+        ingredients_string = ", ".join(ingredient_list)
+        
+        print(f"DEBUG: Generating recipes for pantry: {ingredients_string}")
+        
+        # Find recipe matches
+        matches = finder.find_recipes(ingredients_string, top_n=5)
+        for match in matches:
+            match["cook_time"] = int(match["cook_time"])
+            match["similarity"] = float(match["similarity"])
+        
+        return jsonify({"status": "success", "recipes": matches})
+        
+    except Exception as e:
+        print(f"ERROR generating recipes from pantry: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# pantry routes
 
 @app.route("/get_ingredients")
 def get_ingredients():
@@ -291,18 +332,75 @@ def pantry():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Fetch ingredients for the current user
+    # Fetch ingredients for the current user with ROWID for deletion
     cursor.execute(
-        "SELECT INGREDIENT FROM ingredients WHERE USER_NAME = ?",
+        "SELECT ROWID as id, INGREDIENT FROM ingredients WHERE USER_NAME = ?",
         (session["username"],)
     )
     ingredients = cursor.fetchall()
     conn.close()
     
-    # Convert to list of dictionaries to match your template
-    ingredient_list = [{"name": row["INGREDIENT"], "category": "Pantry"} for row in ingredients]
+    # Convert to list of dictionaries
+    ingredient_list = []
+    for row in ingredients:
+        ingredient_list.append({
+            "id": row["id"],
+            "INGREDIENT": row["INGREDIENT"]
+        })
+    
+    print(f"DEBUG: Fetched ingredients: {ingredient_list}")  # Debug print
     
     return render_template("pantry.html", items=ingredient_list)
+
+@app.route("/get_my_pantry", methods=["GET"])
+def get_my_pantry():
+    """Get current user's pantry ingredients"""
+    if "username" not in session:
+        return jsonify({"status": "error", "message": "Not logged in"}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT INGREDIENT FROM ingredients WHERE USER_NAME = ?",
+            (session["username"],)
+        )
+        ingredients = cursor.fetchall()
+        conn.close()
+        
+        # Convert to list of strings
+        ingredient_list = [row["INGREDIENT"] for row in ingredients]
+        
+        return jsonify({"status": "success", "ingredients": ingredient_list})
+        
+    except Exception as e:
+        print(f"ERROR getting pantry: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/pantry/remove/<int:ingredient_id>")
+def remove_ingredient(ingredient_id):
+    """Remove an ingredient from user's pantry"""
+    if "username" not in session:
+        return redirect("/login")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Delete the ingredient (only if it belongs to the current user)
+        cursor.execute(
+            "DELETE FROM ingredients WHERE ROWID = ? AND USER_NAME = ?",
+            (ingredient_id, session["username"])
+        )
+        conn.commit()
+        conn.close()
+        
+        print(f"DEBUG: Removed ingredient with id {ingredient_id}")
+        
+    except Exception as e:
+        print(f"ERROR removing ingredient: {e}")
+    
+    return redirect("/pantry")
 
 # ============== RUN SERVER ==============
 if __name__ == "__main__":
