@@ -28,32 +28,126 @@ class RecipeFinder:
         # This creates a matrix where each row represents a recipe's ingredient vector
         self.tfidf_matrix = self.vectorizer.fit_transform(self.df['ingredients'])
     
-    def find_recipes(self, user_ingredients, top_n=5):
+    def find_recipes(self, user_ingredients, top_n=5, restrictions=None, allergies=None, party_mode=False):
         """Find recipes that best match the user's available ingredients"""
         # Convert user's ingredients to the same vector format as recipe data
-        # This ensures we can compare user input with existing recipes
         user_vector = self.vectorizer.transform([user_ingredients])
         
         # Calculate cosine similarity between user ingredients and all recipes
-        # Cosine similarity measures the angle between vectors (0=no match, 1=perfect match)
         similarities = cosine_similarity(user_vector, self.tfidf_matrix).flatten()
         
+        # For party mode, boost recipes that are good for large groups
+        if party_mode:
+            for idx in range(len(similarities)):
+                recipe_name = self.df.iloc[idx]['recipe'].lower()
+                recipe_ingredients = self.df.iloc[idx]['ingredients'].lower()
+                # Boost recipes that are naturally party-friendly
+                if any(word in recipe_name for word in ['casserole', 'bake', 'roast', 'stew', 'soup', 'chili']):
+                    similarities[idx] *= 1.2
+                if any(word in recipe_ingredients for word in ['large', 'batch', 'family']):
+                    similarities[idx] *= 1.1
+        
         # Find the indices of the top N most similar recipes
-        # argsort() sorts by similarity, [-top_n:] gets the highest values, [::-1] reverses for descending order
-        top_indices = similarities.argsort()[-top_n:][::-1]
+        top_indices = similarities.argsort()[-top_n*3:][::-1]  # Get more to filter
         
         # Build the results list with recipe details and similarity scores
         results = []
         for idx in top_indices:
-            if similarities[idx] > 0:  # Only include recipes with some similarity (avoid zero matches)
+            if similarities[idx] > 0:
+                recipe_ingredients = self.df.iloc[idx]['ingredients'].lower()
+                
+                # Check dietary restrictions
+                if restrictions:
+                    skip_recipe = False
+                    for restriction in restrictions:
+                        restriction = restriction.lower()
+                        if restriction in ['vegetarian', 'vegan']:
+                            meat_words = ['chicken', 'beef', 'pork', 'fish', 'meat', 'turkey', 'lamb', 'bacon', 'ham', 'sausage', 'seafood', 'shrimp', 'crab']
+                            if any(meat in recipe_ingredients for meat in meat_words):
+                                skip_recipe = True
+                                break
+                        if restriction == 'vegan':
+                            animal_products = ['cheese', 'milk', 'butter', 'cream', 'egg', 'honey', 'yogurt']
+                            if any(product in recipe_ingredients for product in animal_products):
+                                skip_recipe = True
+                                break
+                        if restriction == 'gluten-free':
+                            gluten_words = ['wheat', 'flour', 'bread', 'pasta', 'noodles', 'soy sauce', 'barley', 'rye']
+                            if any(gluten in recipe_ingredients for gluten in gluten_words):
+                                skip_recipe = True
+                                break
+                        if restriction == 'pescatarian':
+                            meat_words = ['chicken', 'beef', 'pork', 'meat', 'turkey', 'lamb', 'bacon', 'ham', 'sausage']
+                            if any(meat in recipe_ingredients for meat in meat_words):
+                                skip_recipe = True
+                                break
+                        if restriction == 'keto':
+                            high_carb_words = ['rice', 'pasta', 'bread', 'potato', 'noodles', 'flour', 'sugar', 'beans', 'corn']
+                            if any(carb in recipe_ingredients for carb in high_carb_words):
+                                skip_recipe = True
+                                break
+                        if restriction == 'paleo':
+                            non_paleo_words = ['dairy', 'cheese', 'milk', 'beans', 'lentils', 'peanuts', 'grains', 'rice', 'wheat', 'oats']
+                            if any(non_paleo in recipe_ingredients for non_paleo in non_paleo_words):
+                                skip_recipe = True
+                                break
+                    if skip_recipe:
+                        continue
+                
+                # Check allergies
+                if allergies:
+                    skip_recipe = False
+                    for allergy in allergies:
+                        allergy = allergy.lower()
+                        if allergy == 'nuts':
+                            nut_words = ['nuts', 'peanut', 'almond', 'walnut', 'cashew', 'pecan', 'hazelnut', 'pistachio']
+                            if any(nut in recipe_ingredients for nut in nut_words):
+                                skip_recipe = True
+                                break
+                        elif allergy == 'dairy':
+                            dairy_words = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'dairy']
+                            if any(dairy in recipe_ingredients for dairy in dairy_words):
+                                skip_recipe = True
+                                break
+                        elif allergy == 'shellfish':
+                            shellfish_words = ['shrimp', 'crab', 'lobster', 'shellfish', 'seafood']
+                            if any(shellfish in recipe_ingredients for shellfish in shellfish_words):
+                                skip_recipe = True
+                                break
+                        elif allergy == 'eggs':
+                            egg_words = ['egg', 'eggs']
+                            if any(egg in recipe_ingredients for egg in egg_words):
+                                skip_recipe = True
+                                break
+                        elif allergy == 'soy':
+                            soy_words = ['soy', 'tofu', 'tempeh', 'miso', 'edamame']
+                            if any(soy_word in recipe_ingredients for soy_word in soy_words):
+                                skip_recipe = True
+                                break
+                        elif allergy == 'sesame':
+                            sesame_words = ['sesame', 'tahini']
+                            if any(sesame_word in recipe_ingredients for sesame_word in sesame_words):
+                                skip_recipe = True
+                                break
+                        else:
+                            # Direct match for other allergies
+                            if allergy in recipe_ingredients:
+                                skip_recipe = True
+                                break
+                    if skip_recipe:
+                        continue
+                
                 results.append({
-                    'recipe': self.df.iloc[idx]['recipe'],           # Recipe name
-                    'ingredients': self.df.iloc[idx]['ingredients'], # Required ingredients
-                    'cook_time': self.df.iloc[idx]['cook_time'],     # Cooking time in minutes
-                    'instructions': self.df.iloc[idx]['instructions'], # Step-by-step instructions
-                    'cuisine': self.df.iloc[idx]['cuisine'],         # Cuisine type (Italian, Chinese, etc.)
-                    'similarity': similarities[idx]                  # Similarity score (0-1)
+                    'recipe': self.df.iloc[idx]['recipe'],
+                    'ingredients': self.df.iloc[idx]['ingredients'],
+                    'cook_time': self.df.iloc[idx]['cook_time'],
+                    'instructions': self.df.iloc[idx]['instructions'],
+                    'cuisine': self.df.iloc[idx]['cuisine'],
+                    'similarity': similarities[idx]
                 })
+                
+                if len(results) >= top_n:
+                    break
         
         return results
 
