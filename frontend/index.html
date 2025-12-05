@@ -66,6 +66,11 @@
 
         <div class="input-group">
             <div class="container mt-4">
+                <!-- Potluck Notification -->
+                <div id="potluckNotification" class="alert alert-info" style="display: none;">
+                    <strong>🎉 Potluck Ingredients Loaded!</strong> Your potluck ingredients have been added below.
+                </div>
+
                 <form id="userForm">
 
                     <div class="mb-3">
@@ -196,6 +201,20 @@
             // Wait for DOM to fully load
             document.addEventListener("DOMContentLoaded", function() {
                 console.log("DOM loaded, setting up event listeners");
+
+                // Check for potluck ingredients from sessionStorage
+                const potluckIngredients = sessionStorage.getItem('potluckIngredients');
+                if (potluckIngredients) {
+                    document.getElementById('ingredients').value = potluckIngredients;
+                    document.getElementById('potluckNotification').style.display = 'block';
+                    // Clear the sessionStorage
+                    sessionStorage.removeItem('potluckIngredients');
+                    
+                    // Hide notification after 5 seconds
+                    setTimeout(() => {
+                        document.getElementById('potluckNotification').style.display = 'none';
+                    }, 5000);
+                }
 
                 // Handle party mode toggle
                 const partyModeToggle = document.getElementById('partyMode');

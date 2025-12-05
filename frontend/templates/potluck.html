@@ -43,7 +43,7 @@
 
                 <h2 class="heading">Potluck Planner</h2>
                 <p class="secondHeader">
-                    Create a potluck and collaborate with friends on who’s bringing what!
+                    Create a potluck and collaborate with friends on who's bringing what!
                 </p>
 
                 <div class="input-group">
@@ -133,16 +133,10 @@
                     </div>
                 </div>
 
-                <!-- Generate Recipes -->
-                <button class="btn btn-primary generate-recipes-btn" onclick="generateRecipes()">
-                    Generate Recipes from Ingredients
+                <!-- Generate Recipes Button - Now redirects to main page -->
+                <button class="btn btn-primary generate-recipes-btn" onclick="redirectToMainWithIngredients()">
+                    Find Recipes with These Ingredients
                 </button>
-
-                <!-- Recipes -->
-                <div id="recipesSection" class="recipes-section" style="display: none;">
-                    <h3 class="heading" style="font-size: 26px;">Recipe Suggestions</h3>
-                    <div id="recipesList"></div>
-                </div>
 
             </div>
         </div>
@@ -249,20 +243,21 @@
         /* ------- JOIN POTLUCK ------- */
         async function joinPotluckById() {
             const id = document.getElementById('joinPotluckIdInput').value.trim();
-            if (!id) return showPotluckAlert("Enter a Potluck ID", true);
+            if (!id) return showAlert("Enter a Potluck ID", true);
 
             try {
                 const response = await fetch(`/potluck/${id}/join`, { method: 'POST' });
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    showPotluckAlert("Joined successfully!");
+                    showAlert("Joined successfully!");
                     document.getElementById('joinPotluckIdInput').value = '';
+                    loadPotlucks();
                 } else {
-                    showPotluckAlert(data.message, true);
+                    showAlert(data.message, true);
                 }
             } catch {
-                showPotluckAlert("Error joining potluck", true);
+                showAlert("Error joining potluck", true);
             }
         }
 
@@ -328,38 +323,31 @@
             } catch {}
         }
 
-        /* ------- RECIPES ------- */
-        async function generateRecipes() {
+        /* ------- REDIRECT TO MAIN PAGE WITH INGREDIENTS ------- */
+        async function redirectToMainWithIngredients() {
             try {
-                const response = await fetch(`/potluck/${currentPotluckId}/generate_recipes`, {
-                    method: 'POST'
-                });
-
+                const response = await fetch(`/potluck/${currentPotluckId}/ingredients`);
                 const data = await response.json();
-                const section = document.getElementById('recipesSection');
-                const list = document.getElementById('recipesList');
 
-                if (!data.recipes || data.recipes.length === 0) {
-                    list.innerHTML = `<p>No recipes found.</p>`;
-                } else {
-                    list.innerHTML = data.recipes
-                        .map(r => `
-                            <div class="recipe-card-result">
-                                <h3>${r.name}</h3>
-                                <div class="recipe-meta">
-                                    <span>${r.cuisine}</span> •
-                                    <span>${r.cook_time} mins</span>
-                                </div>
-                                <p><strong>Ingredients:</strong> ${r.ingredients}</p>
-                                <p><strong>Instructions:</strong> ${r.instructions}</p>
-                            </div>
-                        `)
-                        .join('');
+                if (!data.ingredients || data.ingredients.length === 0) {
+                    showPotluckAlert("No ingredients to use for recipes yet!", true);
+                    return;
                 }
 
-                section.style.display = 'block';
+                // Extract just the ingredient names
+                const ingredientNames = data.ingredients.map(i => i.ingredient);
+                const ingredientsString = ingredientNames.join(', ');
 
-            } catch {}
+                // Store in sessionStorage to pass to main page
+                sessionStorage.setItem('potluckIngredients', ingredientsString);
+
+                // Redirect to main page
+                window.location.href = '/';
+
+            } catch (error) {
+                console.error('Error loading ingredients:', error);
+                showPotluckAlert("Error loading ingredients", true);
+            }
         }
     </script>
 
