@@ -156,6 +156,38 @@
                             <input class="form-check-input" type="checkbox" value="sesame" id="sesame">
                             <label class="form-check-label" for="sesame">Sesame</label>
                         </div>
+
+                    </div>
+                                        <div class="mb-3">
+                        <label class="form-label">Cuisine Type (Optional)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="American" id="american">
+                            <label class="form-check-label" for="american">American</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Korean" id="korean">
+                            <label class="form-check-label" for="korean">Korean</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="mexican" id="mexican">
+                            <label class="form-check-label" for="mexican">Mexican</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="chinese" id="chinese">
+                            <label class="form-check-label" for="chinese">Chinese</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="italian" id="italian">
+                            <label class="form-check-label" for="italian">Italian</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="japanese" id="japanese">
+                            <label class="form-check-label" for="japanese">Japanese</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="mediteranian" id="mediteranian">
+                            <label class="form-check-label" for="mediteranian">Mediterranean</label>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-dark btn-lg">Submit</button>
@@ -289,6 +321,17 @@
                         if (document.getElementById('eggs').checked) allergies.push('eggs');
                         if (document.getElementById('soy').checked) allergies.push('soy');
                         if (document.getElementById('sesame').checked) allergies.push('sesame');
+
+                        // Get selected cuisines
+                        const cuisines = [];
+                        if (document.getElementById('american').checked) cuisines.push('American');
+                        if (document.getElementById('korean').checked) cuisines.push('Korean');
+                        if (document.getElementById('mexican').checked) cuisines.push('Mexican');
+                        if (document.getElementById('chinese').checked) cuisines.push('Chinese');
+                        if (document.getElementById('italian').checked) cuisines.push('Italian');
+                        if (document.getElementById('japanese').checked) cuisines.push('Japanese');
+                        if (document.getElementById('mediteranian').checked) cuisines.push('Mediterranean');
+
                         
                         // Get party mode settings
                         const partyMode = document.getElementById('partyMode').checked;
@@ -298,6 +341,7 @@
                             ingredients: form.ingredients.value,
                             restrictions: restrictions,
                             allergies: allergies,
+                            cuisines: cuisines,
                             partyMode: partyMode,
                             servingSize: servingSize
                         };

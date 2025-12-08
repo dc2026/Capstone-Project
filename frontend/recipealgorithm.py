@@ -28,7 +28,7 @@ class RecipeFinder:
         # This creates a matrix where each row represents a recipe's ingredient vector
         self.tfidf_matrix = self.vectorizer.fit_transform(self.df['ingredients'])
     
-    def find_recipes(self, user_ingredients, top_n=5, restrictions=None, allergies=None, party_mode=False):
+    def find_recipes(self, user_ingredients, top_n=5, restrictions=None, allergies=None, party_mode=False, cuisines=None):
         """Find recipes that best match the user's available ingredients"""
         # Convert user's ingredients to the same vector format as recipe data
         user_vector = self.vectorizer.transform([user_ingredients])
@@ -55,6 +55,12 @@ class RecipeFinder:
         for idx in top_indices:
             if similarities[idx] > 0:
                 recipe_ingredients = self.df.iloc[idx]['ingredients'].lower()
+
+                # ---- Cuisine Filtering ----
+                if cuisines:  # Only filter if the user selected cuisines
+                    recipe_cuisine = str(self.df.iloc[idx]['cuisine']).lower()
+                    if not any(c.lower() in recipe_cuisine for c in cuisines):
+                        continue
                 
                 # Check dietary restrictions
                 if restrictions:

@@ -242,8 +242,10 @@ def submit():
     restrictions = data.get("restrictions", [])
     allergies = data.get("allergies", [])
     party_mode = data.get("partyMode", False)
+    cuisines = data.get("cuisines", [])
+
     
-    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode)
+    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode, cuisines=cuisines)
     
     for match in matches:
         match["cook_time"] = int(match["cook_time"])
@@ -310,9 +312,11 @@ def generate_from_pantry():
         restrictions = data.get("restrictions", [])
         allergies = data.get("allergies", [])
         party_mode = data.get("partyMode", False)
+        cuisines = data.get("cuisines", [])
+
         
         # Find recipe matches with optional dietary filtering
-        matches = finder.find_recipes(ingredients_string, top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode)
+        matches = finder.find_recipes(ingredients_string, top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode, cuisines=cuisines)
         for match in matches:
             match["cook_time"] = int(match["cook_time"])
             match["similarity"] = float(match["similarity"])
