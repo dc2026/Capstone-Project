@@ -243,9 +243,9 @@ def submit():
     allergies = data.get("allergies", [])
     party_mode = data.get("partyMode", False)
     cuisines = data.get("cuisines", [])
-
+    cook_time = data.get("cookTime")
     
-    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode, cuisines=cuisines)
+    matches = finder.find_recipes(data["ingredients"], top_n=5, restrictions=restrictions, allergies=allergies, party_mode=party_mode, cuisines=cuisines, cook_time=cook_time)
     
     for match in matches:
         match["cook_time"] = int(match["cook_time"])
